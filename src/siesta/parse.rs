@@ -178,18 +178,18 @@ fn get_cell(s: &str) -> IResult<&str, [[f64; 3]; 3]> {
 
 // read element and coordinates
 // 4    45       0.993284236       0.996245743       0.237524061
-fn read_atom(s: &str) -> IResult<&str, (usize, [f64; 3])> {
+fn read_atom(s: &str) -> IResult<&str, (&str, [f64; 3])> {
     nom::do_parse!(
         s,
         space0  >> digit1 >> space1 >>      // atom type
-        n: unsigned_digit >> space1 >>      // atomic number
+        n:      digit1    >> space1 >>      // atomic number
         coords: xyz_array >> line_ending >> // xyz coordinates
         ((n, coords))
     )
 }
 
 /// Return cell and atoms
-pub fn get_structure(s: &str) -> IResult<&str, ([[f64; 3]; 3], Vec<(usize, [f64; 3])>)> {
+pub fn get_structure(s: &str) -> IResult<&str, ([[f64; 3]; 3], Vec<(&str, [f64; 3])>)> {
     use nom::multi::count;
 
     let (r, cell) = get_cell(s)?;

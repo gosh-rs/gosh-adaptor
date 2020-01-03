@@ -10,7 +10,7 @@ authors = ["Wenping Guo <ybyygu@gmail.com>"]
 [dependencies]
 guts = { git = "https://github.com/ybyygu/guts.git" }
 nom = "5"
-gosh-models = {path = "../models"}
+gosh-models = {path = "../models", features = ["adhoc"]}
 # text-parser = { path = "../../gchemol-rs/parser" }
 structopt = "0.3"
 
