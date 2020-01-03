@@ -1,0 +1,18 @@
+# cargo
+
+# [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*cargo][cargo:1]]
+[package]
+name = "gosh-adaptors"
+version = "0.0.1"
+edition = "2018"
+authors = ["Wenping Guo <ybyygu@gmail.com>"]
+
+[dependencies]
+guts = { git = "https://github.com/ybyygu/guts.git" }
+nom = "5"
+gosh-models = {path = "../models"}
+# text-parser = { path = "../../gchemol-rs/parser" }
+structopt = "0.3"
+
+[dev-dependencies]
+# cargo:1 ends here
