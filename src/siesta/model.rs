@@ -1,7 +1,9 @@
 // imports
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*imports][imports:1]]
+use gosh_core::guts;
 use gosh_models::ModelProperties;
+
 use guts::prelude::*;
 
 use std::path::Path;

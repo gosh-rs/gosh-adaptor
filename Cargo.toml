@@ -8,9 +8,9 @@ edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
 [dependencies]
-guts = { git = "https://github.com/ybyygu/guts.git" }
 nom = "5"
-gosh-core = {path = "../core"}
+gosh-core = { git = "https://github.com/gosh-rs/gosh-core.git" }
+# gosh-models = { git = "https://github.com/gosh-rs/gosh-models.git" }
 gosh-models = {path = "../models", features = ["adhoc"]}
 # text-parser = { path = "../../gchemol-rs/parser" }
 structopt = "0.3"
