@@ -15,7 +15,7 @@ use std::path::Path;
 /// # Parameters
 ///
 /// * siesta_out_file: SIESTA output file, e.g. siesta.log
-pub fn get_siesta_results(siesta_out_file: &Path) -> Result<ModelProperties> {
+pub(crate) fn get_siesta_results(siesta_out_file: &Path) -> Result<ModelProperties> {
     // guesses other files for reading forces and structure.
     let siesta_forces_file = siesta_out_file.with_extension("FA");
     let siesta_struct_file = siesta_out_file.with_extension("STRUCT_OUT");

@@ -1,13 +1,9 @@
 // imports
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*imports][imports:1]]
-use std::path::Path;
-
-use gosh_core::guts;
+use gosh_core::guts::fs::*;
+use gosh_core::guts::prelude::*;
 use gosh_models::ModelProperties;
-
-use guts::fs::read_file;
-use guts::prelude::*;
 
 use super::parse::*;
 // imports:1 ends here
@@ -15,22 +11,7 @@ use super::parse::*;
 // pub
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*pub][pub:1]]
-pub struct MOPAC();
-
-use crate::ModelAdaptor;
-
-impl ModelAdaptor for MOPAC {
-    fn parse_all<P: AsRef<Path>>(&self, outfile: P) -> Result<Vec<ModelProperties>> {
-        get_mopac_results(outfile)
-    }
-
-    fn parse_last<P: AsRef<Path>>(&self, outfile: P) -> Result<ModelProperties> {
-        let all = self.parse_all(outfile)?;
-        let last = all.into_iter().last().unwrap();
-        Ok(last)
-    }
-}
-fn get_mopac_results<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProperties>> {
+pub(crate) fn get_mopac_results<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProperties>> {
     let s = read_file(fout)?;
     let (_, mps) = get_results(&s).unwrap();
     Ok(mps)

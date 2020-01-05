@@ -4,10 +4,11 @@
 // :END:
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*siesta-adaptor.rs][siesta-adaptor.rs:1]]
-use guts::prelude::*;
 use guts::cli::*;
+use guts::prelude::*;
 
 fn main() -> CliResult {
-    gosh_adaptors::siesta::enter_main()
+    let siesta = gosh_adaptors::Siesta();
+    gosh_adaptors::enter_main(siesta)
 }
 // siesta-adaptor.rs:1 ends here
