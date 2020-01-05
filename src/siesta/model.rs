@@ -1,15 +1,15 @@
 // imports
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*imports][imports:1]]
+use gosh_models::ModelProperties;
 use guts::prelude::*;
+
+use std::path::Path;
 // imports:1 ends here
 
 // core
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*core][core:1]]
-use gosh_models::ModelProperties;
-use std::path::Path;
-
 /// Read SIESTA calculated results.
 ///
 /// # Parameters
