@@ -15,24 +15,10 @@ use nom::IResult;
 // energy
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*energy][energy:1]]
-fn jump_to_token<'a>(token: &'a str) -> impl Fn(&'a str) -> IResult<&str, ()> {
-    use nom::combinator::map;
-    use nom::sequence::pair;
-
-    map(pair(take_until(token), tag(token)), |_| ())
-}
-
-#[test]
-fn test_take() {
-    let x = "xxbcc aa cc";
-    let (r, _) = jump_to_token("aa")(x).unwrap();
-    assert_eq!(r, " cc");
-}
-
 //           TOTAL ENERGY            =       -720.18428 EV
 fn get_total_energy(s: &str) -> IResult<&str, f64> {
     let token = "TOTAL ENERGY            =";
-    let jump = jump_to_token(token);
+    let jump = jump_to(token);
     let tag_ev = tag("EV");
     do_parse!(
         s,
@@ -143,7 +129,7 @@ fn get_atom_and_forces(s: &str) -> IResult<&str, (&str, [f64; 3], [f64; 3])> {
 //      6          2  C    CARTESIAN Z     3.386110     3.736531  KCAL/ANGSTROM
 fn get_structure_and_gradients(s: &str) -> IResult<&str, Vec<(&str, [f64; 3], [f64; 3])>> {
     let token = "FINAL  POINT  AND  DERIVATIVES";
-    let jump = jump_to_token(token);
+    let jump = jump_to(token);
     let read_many = many1(get_atom_and_forces);
     do_parse!(
         s,

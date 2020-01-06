@@ -58,3 +58,18 @@ pub fn xyz_array(s: &str) -> IResult<&str, [f64; 3]> {
 
     Ok((r, [x, y, z]))
 }
+
+/// Take and consuming to `token`.
+pub fn jump_to<'a>(token: &'a str) -> impl Fn(&'a str) -> IResult<&str, ()> {
+    use nom::combinator::map;
+    use nom::sequence::pair;
+
+    map(pair(take_until(token), tag(token)), |_| ())
+}
+
+#[test]
+fn test_take() {
+    let x = "xxbcc aa cc";
+    let (r, _) = jump_to("aa")(x).unwrap();
+    assert_eq!(r, " cc");
+}

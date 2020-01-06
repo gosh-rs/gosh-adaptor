@@ -60,6 +60,10 @@ fn main() -> CliResult {
             let app = Siesta();
             parse(app, args.all, outfile)?;
         }
+        "gulp" => {
+            let app = Gulp();
+            parse(app, args.all, outfile)?;
+        }
         _ => todo!(),
     }
 
