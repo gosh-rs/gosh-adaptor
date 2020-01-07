@@ -7,6 +7,8 @@ use nom::character::complete::{space0, space1};
 use nom::number::complete::double;
 
 use nom::IResult;
+
+use crate::parser::*;
 // imports:1 ends here
 
 // energy
@@ -52,66 +54,14 @@ siesta:         Total =  -37729.793337\n
     assert_eq!(-37729.793337, en);
 }
 
-fn get_total_energy_many(s: &str) -> IResult<&str, Vec<f64>> {
+pub fn get_total_energy_many(s: &str) -> IResult<&str, Vec<f64>> {
     nom::multi::many1(get_total_energy)(s)
-}
-
-#[test]
-#[ignore]
-fn test_get_many() {
-    let f = "/home/ybyygu/siesta-opt/siesta.log";
-    let s = guts::fs::read_file(f).unwrap();
-    let (r, x) = get_total_energy_many(&s).unwrap();
-    dbg!(x);
 }
 // energy:1 ends here
 
 // forces
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*forces][forces:1]]
-/// Match one unsigned integer: 123
-pub fn unsigned_digit(s: &str) -> IResult<&str, usize> {
-    use nom::combinator::map;
-
-    map(digit1, |s: &str| s.parse().unwrap())(s)
-}
-
-/// Parse a line containing an unsigned integer number.
-pub fn read_usize(s: &str) -> IResult<&str, usize> {
-    // allow white spaces
-    let p = nom::sequence::delimited(space0, unsigned_digit, space0);
-    nom::sequence::terminated(p, line_ending)(s)
-}
-
-#[test]
-fn test_numbers() {
-    let s = "12x";
-    let (r, n) = unsigned_digit(s).unwrap();
-    assert_eq!(n, 12);
-    assert_eq!(r, "x");
-
-    let (r, n) = read_usize(" 12 \n").unwrap();
-    assert_eq!(n, 12);
-    assert_eq!(r, "");
-}
-
-/// Anything except whitespace.
-pub fn not_space(s: &str) -> IResult<&str, &str> {
-    use nom::bytes::complete::is_not;
-
-    is_not(" \t\r\n")(s)
-}
-
-/// Consume three float numbers separated by one or more spaces.
-pub fn xyz_array(s: &str) -> IResult<&str, [f64; 3]> {
-    use nom::combinator::map;
-    use nom::multi::count;
-    use nom::sequence::terminated;
-
-    let f = terminated(double, space0);
-    map(count(f, 3), |v| [v[0], v[1], v[2]])(s)
-}
-
 // 1   0.664163041E-01   0.463152759E-01   0.711250774E-01
 fn read_forces_line(s: &str) -> IResult<&str, [f64; 3]> {
     nom::do_parse!(
@@ -120,7 +70,7 @@ fn read_forces_line(s: &str) -> IResult<&str, [f64; 3]> {
     )
 }
 
-fn get_forces(s: &str) -> IResult<&str, Vec<[f64; 3]>> {
+pub fn get_forces(s: &str) -> IResult<&str, Vec<[f64; 3]>> {
     use nom::multi::count;
 
     let (s, natoms) = read_usize(s)?;
@@ -183,25 +133,24 @@ fn get_cell(s: &str) -> IResult<&str, [[f64; 3]; 3]> {
 
 // read element and coordinates
 // 4    45       0.993284236       0.996245743       0.237524061
-fn read_atom(s: &str) -> IResult<&str, (usize, [f64; 3])> {
+fn read_atom(s: &str) -> IResult<&str, (&str, [f64; 3])> {
     nom::do_parse!(
         s,
         space0  >> digit1 >> space1 >>      // atom type
-        n: unsigned_digit >> space1 >>      // atomic number
+        n:      digit1    >> space1 >>      // atomic number
         coords: xyz_array >> line_ending >> // xyz coordinates
         ((n, coords))
     )
 }
 
-fn get_structure(s: &str) -> IResult<&str, usize> {
+/// Return cell and atoms
+pub fn get_structure(s: &str) -> IResult<&str, ([[f64; 3]; 3], Vec<(&str, [f64; 3])>)> {
     use nom::multi::count;
 
     let (r, cell) = get_cell(s)?;
-    dbg!(cell);
     let (r, natoms) = read_usize(r)?;
-    dbg!(natoms);
     let (r, atoms) = count(read_atom, natoms)(r)?;
-    Ok((r, 0))
+    Ok((r, (cell, atoms)))
 }
 
 #[test]
@@ -244,19 +193,7 @@ fn test_get_structure() {
 4    45       0.778788669       0.889091725      -0.002546506
 ";
 
-    let (_, x) = get_structure(s).unwrap();
+    let (_, (cell, atoms)) = get_structure(s).unwrap();
+    assert_eq!(atoms.len(), 32);
 }
 // structure:1 ends here
-
-// model properties
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*model properties][model properties:1]]
-use gosh_models::ModelProperties;
-
-#[test]
-fn test_model_properties() {
-    let d = "/home/ybyygu/siesta-opt";
-    let l = "siesta";
-    todo!()
-}
-// model properties:1 ends here

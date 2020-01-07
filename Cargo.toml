@@ -3,14 +3,15 @@
 # [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*cargo][cargo:1]]
 [package]
 name = "gosh-adaptors"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 
 [dependencies]
-guts = { git = "https://github.com/ybyygu/guts.git" }
 nom = "5"
-gosh-models = {path = "../models"}
+gosh-core = { git = "https://github.com/gosh-rs/gosh-core.git" }
+gosh-models = { git = "https://github.com/gosh-rs/gosh-models.git", features = ["adhoc"] }
+# gosh-models = {path = "../models", features = ["adhoc"]}
 # text-parser = { path = "../../gchemol-rs/parser" }
 structopt = "0.3"
 
