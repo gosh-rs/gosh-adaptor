@@ -10,8 +10,8 @@ authors = ["Wenping Guo <ybyygu@gmail.com>"]
 [dependencies]
 nom = "5"
 gosh-core = { git = "https://github.com/gosh-rs/gosh-core.git" }
-# gosh-models = { git = "https://github.com/gosh-rs/gosh-models.git" }
-gosh-models = {path = "../models", features = ["adhoc"]}
+gosh-models = { git = "https://github.com/gosh-rs/gosh-models.git", features = ["adhoc"] }
+# gosh-models = {path = "../models", features = ["adhoc"]}
 # text-parser = { path = "../../gchemol-rs/parser" }
 structopt = "0.3"
 

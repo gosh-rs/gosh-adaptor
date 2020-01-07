@@ -50,6 +50,34 @@ pub fn not_space(s: &str) -> IResult<&str, &str> {
     is_not(" \t\r\n")(s)
 }
 
+/// Match one unsigned integer: 123
+pub fn unsigned_digit(s: &str) -> IResult<&str, usize> {
+    use nom::combinator::map;
+
+    map(digit1, |s: &str| s.parse().unwrap())(s)
+}
+
+/// Parse a line containing an unsigned integer number.
+pub fn read_usize(s: &str) -> IResult<&str, usize> {
+    use nom::character::complete::line_ending;
+
+    // allow white spaces
+    let p = nom::sequence::delimited(space0, unsigned_digit, space0);
+    nom::sequence::terminated(p, line_ending)(s)
+}
+
+#[test]
+fn test_numbers() {
+    let s = "12x";
+    let (r, n) = unsigned_digit(s).unwrap();
+    assert_eq!(n, 12);
+    assert_eq!(r, "x");
+
+    let (r, n) = read_usize(" 12 \n").unwrap();
+    assert_eq!(n, 12);
+    assert_eq!(r, "");
+}
+
 /// Consume three float numbers separated by one or more spaces. Return xyz array.
 pub fn xyz_array(s: &str) -> IResult<&str, [f64; 3]> {
     use nom::sequence::tuple;
