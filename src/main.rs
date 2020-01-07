@@ -64,6 +64,10 @@ fn main() -> CliResult {
             let app = Gulp();
             parse(app, args.all, outfile)?;
         }
+        "vasp" => {
+            let app = Vasp();
+            parse(app, args.all, outfile)?;
+        }
         _ => todo!(),
     }
 

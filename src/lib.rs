@@ -4,6 +4,7 @@ mod mopac;
 mod parser;
 mod siesta;
 mod gulp;
+mod vasp;
 
 // trait
 
@@ -31,6 +32,7 @@ pub trait ModelAdaptor {
 
 // pub
 
+pub use crate::gulp::Gulp;
 pub use crate::mopac::Mopac;
 pub use crate::siesta::Siesta;
-pub use crate::gulp::Gulp;
+pub use crate::vasp::Vasp;
