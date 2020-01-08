@@ -27,25 +27,6 @@ struct Cli {
     all: bool,
 }
 
-fn parse<M: ModelAdaptor>(app: M, all: bool, outfile: &Path) -> CliResult {
-    if all {
-        for d in app.parse_all(outfile)? {
-            if d.is_empty() {
-                panic!("No data extracted from: {:?}", outfile);
-            }
-            println!("{:}", d);
-        }
-    } else {
-        let d = app.parse_last(outfile)?;
-        if d.is_empty() {
-            panic!("No data extracted from: {:?}", outfile);
-        }
-        println!("{:}", d);
-    }
-
-    Ok(())
-}
-
 fn main() -> CliResult {
     let args = Cli::from_args();
     setup_logger();
@@ -68,7 +49,30 @@ fn main() -> CliResult {
             let app = Vasp();
             parse(app, args.all, outfile)?;
         }
+        "gaussian" => {
+            let app = Gaussian();
+            parse(app, args.all, outfile)?;
+        }
         _ => todo!(),
+    }
+
+    Ok(())
+}
+
+fn parse<M: ModelAdaptor>(app: M, all: bool, outfile: &Path) -> CliResult {
+    if all {
+        for d in app.parse_all(outfile)? {
+            if d.is_empty() {
+                panic!("No data extracted from: {:?}", outfile);
+            }
+            println!("{:}", d);
+        }
+    } else {
+        let d = app.parse_last(outfile)?;
+        if d.is_empty() {
+            panic!("No data extracted from: {:?}", outfile);
+        }
+        println!("{:}", d);
     }
 
     Ok(())

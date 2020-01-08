@@ -2,6 +2,7 @@
 
 mod parser;
 
+mod gaussian;
 mod gulp;
 mod mopac;
 mod siesta;
@@ -37,3 +38,4 @@ pub use crate::gulp::Gulp;
 pub use crate::mopac::Mopac;
 pub use crate::siesta::Siesta;
 pub use crate::vasp::Vasp;
+pub use crate::gaussian::Gaussian;
