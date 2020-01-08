@@ -16,4 +16,5 @@ gosh-models = { git = "https://github.com/gosh-rs/gosh-models.git", features = [
 structopt = "0.3"
 
 [dev-dependencies]
+approx = "*"
 # cargo:1 ends here
