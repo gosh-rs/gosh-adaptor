@@ -8,65 +8,6 @@ use std::path::Path;
 use gosh_core::guts::prelude::*;
 use gosh_models::ModelProperties;
 
-// collect
-
-type FileReader = BufReader<File>;
-
-fn text_file_reader<P: AsRef<Path>>(p: P) -> Result<FileReader> {
-    let f = File::open(p.as_ref())?;
-    let reader = BufReader::new(f);
-    Ok(reader)
-}
-
-struct FchkDataRecords {
-    label: String,
-    lines: std::io::Lines<FileReader>,
-}
-
-impl Iterator for FchkDataRecords {
-    type Item = (String, String);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut data_lines = String::new();
-        while let Some(line) = self.lines.next() {
-            let line = line.unwrap();
-            if is_data_label(&line) {
-                let head = self.label.to_string();
-                self.label = line.to_string();
-                // skip the first empty line
-                if !head.is_empty() {
-                    return Some((head, data_lines));
-                }
-            } else {
-                data_lines += &line;
-                // the line ending
-                data_lines += "\n";
-            }
-        }
-        // Handle the final section
-        if self.label.is_empty() {
-            None
-        } else {
-            let head = self.label.to_string();
-            self.label.clear();
-            Some((head, data_lines))
-        }
-    }
-}
-
-fn is_data_label(line: &str) -> bool {
-    line.len() >= 50 && line.chars().next().unwrap().is_uppercase()
-}
-
-impl FchkDataRecords {
-    pub fn new(reader: FileReader) -> Self {
-        Self {
-            lines: reader.lines(),
-            label: String::new(),
-        }
-    }
-}
-
 // model
 
 // Hartree to eV
@@ -74,18 +15,23 @@ const HARTREE: f64 = 27.211386024367243;
 const BOHR: f64 = 0.5291772105638411;
 
 use gosh_core::gchemol::Molecule;
+use text_parser::TextReader;
 
 /// Parse model properties from Gaussian/fchk file.
 pub(crate) fn parse_gaussian_fchk<P: AsRef<Path>>(fchkfile: P) -> Result<ModelProperties> {
-    let r = text_file_reader(fchkfile)?;
-    let parts = FchkDataRecords::new(r);
-
     let mut mp = ModelProperties::default();
     let energy_token = "Total Energy                               R";
     let n = energy_token.len();
     let mut symbols = vec![];
     let mut positions = vec![];
-    for (label, data) in parts {
+
+    // check if a line is a data label
+    fn is_data_label(line: &str) -> bool {
+        line.len() >= 50 && line.chars().next().unwrap().is_uppercase()
+    }
+
+    let r = TextReader::from_path(fchkfile)?;
+    for (label, data) in r.records(is_data_label) {
         match &label[..n] {
             "Total Energy                               R" => {
                 let (_, e) = label.split_at(n);

@@ -3,5 +3,4 @@
 // :header-args: :comments org :tangle src/parser.rs
 // :END:
 
-pub(crate) use text_parser::complete::*;
-pub(crate) use text_parser::new::*;
+pub(crate) use text_parser::parsers::*;

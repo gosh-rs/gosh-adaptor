@@ -12,7 +12,8 @@ nom = "5"
 gosh-core = { git = "https://github.com/gosh-rs/gosh-core.git" }
 gosh-models = { git = "https://github.com/gosh-rs/gosh-models.git", features = ["adhoc"] }
 # gosh-models = {path = "../models", features = ["adhoc"]}
-text-parser = { path = "../../gchemol-rs/parser", features = ["adhoc"] }
+text-parser = { git = "https://github.com/gchemol/parser.git" }
+# text-parser = { path = "../../gchemol-rs/parser", features = ["adhoc"] }
 structopt = "0.3"
 
 [dev-dependencies]
