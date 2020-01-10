@@ -8,7 +8,7 @@ use std::path::Path;
 use gosh_core::guts::prelude::*;
 use gosh_models::ModelProperties;
 
-// collect parts
+// collect
 
 type FileReader = BufReader<File>;
 
@@ -38,7 +38,9 @@ impl Iterator for FchkDataRecords {
                     return Some((head, data_lines));
                 }
             } else {
-                data_lines.push_str(&line);
+                data_lines += &line;
+                // the line ending
+                data_lines += "\n";
             }
         }
         // Handle the final section
