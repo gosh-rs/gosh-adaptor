@@ -30,8 +30,12 @@ pub(crate) fn parse_gaussian_fchk<P: AsRef<Path>>(fchkfile: P) -> Result<ModelPr
         line.len() >= 50 && line.chars().next().unwrap().is_uppercase()
     }
 
-    let r = TextReader::from_path(fchkfile)?;
-    for (label, data) in r.records(is_data_label) {
+    // FIXME: remove unwrap when gosh is ready for anyhow
+    let r = TextReader::from_path(fchkfile).unwrap();
+    for bunch in r.bunches(is_data_label) {
+        let mut lines = bunch.into_iter();
+        let label = lines.next().unwrap();
+        let data = lines.join("\n");
         match &label[..n] {
             "Total Energy                               R" => {
                 let (_, e) = label.split_at(n);
