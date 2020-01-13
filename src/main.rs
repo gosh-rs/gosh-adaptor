@@ -61,14 +61,14 @@ fn main() -> CliResult {
 
 fn parse<M: ModelAdaptor>(app: M, all: bool, outfile: &Path) -> CliResult {
     if all {
-        for d in app.parse_all(outfile)? {
+        for d in app.parse_all(outfile).expect("parse failure") {
             if d.is_empty() {
                 panic!("No data extracted from: {:?}", outfile);
             }
             println!("{:}", d);
         }
     } else {
-        let d = app.parse_last(outfile)?;
+        let d = app.parse_last(outfile).expect("parse last failure");
         if d.is_empty() {
             panic!("No data extracted from: {:?}", outfile);
         }
