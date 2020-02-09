@@ -1,8 +1,8 @@
 // imports
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*imports][imports:1]]
-use gosh_core::guts::fs::*;
-use gosh_core::guts::prelude::*;
+use gosh_core::gut::fs::*;
+use gosh_core::gut::prelude::*;
 use gosh_models::ModelProperties;
 
 use super::parse::*;

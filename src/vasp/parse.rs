@@ -110,11 +110,11 @@ fn test_vasp_forces() {
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*model][model:1]]
 use gosh_core::gchemol::Molecule;
-use gosh_core::guts;
+use gosh_core::gut;
 use gosh_models::ModelProperties;
 
-use guts::fs::*;
-use guts::prelude::*;
+use gut::fs::*;
+use gut::prelude::*;
 
 fn get_results(s: &str) -> IResult<&str, ModelProperties> {
     do_parse!(

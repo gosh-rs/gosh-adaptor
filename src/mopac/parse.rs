@@ -185,8 +185,7 @@ fn get_mopac_results(s: &str) -> IResult<&str, ModelProperties> {
             ]);
             // structure and gradients
             let atoms = data.iter().map(|(s, p, _)| (*s, *p));
-            let mut mol = Molecule::new("mp");
-            mol.add_atoms_from(atoms);
+            let mol = Molecule::from_atoms(atoms);
             mp.set_molecule(mol);
             // set forces
             let forces: Vec<_> = data.iter().map(|(_, _, f)| {

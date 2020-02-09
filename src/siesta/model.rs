@@ -1,10 +1,10 @@
 // imports
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*imports][imports:1]]
-use gosh_core::guts;
+use gosh_core::gut;
 use gosh_models::ModelProperties;
 
-use guts::prelude::*;
+use gut::prelude::*;
 
 use std::path::Path;
 // imports:1 ends here
@@ -24,19 +24,19 @@ pub(crate) fn get_siesta_results(siesta_out_file: &Path) -> Result<ModelProperti
 
     let mut mp = ModelProperties::default();
     // get energy
-    let s = guts::fs::read_file(&siesta_out_file)?;
+    let s = gut::fs::read_file(&siesta_out_file)?;
     let (_, e) = super::parse::get_total_energy_many(&s)
         .map_err(|e| format_err!("parse siesta energy failed:\n{:?}", e))?;
     mp.set_energy(e.into_iter().last().unwrap());
 
     // get forces
-    let s = guts::fs::read_file(&siesta_forces_file)?;
+    let s = gut::fs::read_file(&siesta_forces_file)?;
     let (_, f) = super::parse::get_forces(&s)
         .map_err(|e| format_err!("parse siesta forces failed:\n{:?}", e))?;
     mp.set_forces(f);
 
     // get structures
-    let s = guts::fs::read_file(&siesta_struct_file)?;
+    let s = gut::fs::read_file(&siesta_struct_file)?;
     let (_, (cell, atoms)) = super::parse::get_structure(&s)
         .map_err(|e| format_err!("parse siesta structure failed:\n{:?}", e))?;
     // scaled fractional coordinates => Cartesian coordinates

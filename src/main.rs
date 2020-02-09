@@ -6,8 +6,8 @@
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*main.rs][main.rs:1]]
 use gosh_core::*;
 
-use guts::cli::*;
-use guts::fs::*;
+use gut::cli::*;
+use gut::fs::*;
 use structopt::*;
 
 use gosh_adaptors::*;

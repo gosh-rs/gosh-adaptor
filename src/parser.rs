@@ -3,4 +3,4 @@
 // :header-args: :comments org :tangle src/parser.rs
 // :END:
 
-pub(crate) use text_parser::parsers::*;
+pub(crate) use gosh_core::text_parser::parsers::*;

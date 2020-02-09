@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
 
-use gosh_core::guts::prelude::*;
+use gosh_core::gut::prelude::*;
 use gosh_models::ModelProperties;
 
 // model
@@ -15,7 +15,7 @@ const HARTREE: f64 = 27.211386024367243;
 const BOHR: f64 = 0.5291772105638411;
 
 use gosh_core::gchemol::Molecule;
-use text_parser::TextReader;
+use gosh_core::text_parser::TextReader;
 
 /// Parse model properties from Gaussian/fchk file.
 pub(crate) fn parse_gaussian_fchk<P: AsRef<Path>>(fchkfile: P) -> Result<ModelProperties> {
@@ -30,12 +30,11 @@ pub(crate) fn parse_gaussian_fchk<P: AsRef<Path>>(fchkfile: P) -> Result<ModelPr
         line.len() >= 50 && line.chars().next().unwrap().is_uppercase()
     }
 
-    // FIXME: remove unwrap when gosh is ready for anyhow
-    let r = TextReader::from_path(fchkfile).unwrap();
-    for bunch in r.bunches(is_data_label) {
-        let mut lines = bunch.into_iter();
-        let label = lines.next().unwrap();
-        let data = lines.join("\n");
+    let r = TextReader::from_path(fchkfile)?;
+    for bunch in r.preceded_bunches(is_data_label) {
+        let mut data = bunch.splitn(2, "\n");
+        let label = data.next().expect("chk label");
+        let data = data.next().expect("chk data");
         match &label[..n] {
             "Total Energy                               R" => {
                 let (_, e) = label.split_at(n);
@@ -72,9 +71,8 @@ pub(crate) fn parse_gaussian_fchk<P: AsRef<Path>>(fchkfile: P) -> Result<ModelPr
             }
         }
     }
-    let mut mol = Molecule::new("gaussian fchk");
-    let atoms = symbols.into_iter().zip(positions.into_iter());
-    mol.add_atoms_from(atoms);
+    let atoms = symbols.iter().zip(positions.into_iter());
+    let mol = Molecule::from_atoms(atoms);
     mp.set_molecule(mol);
 
     Ok(mp)
@@ -108,8 +106,8 @@ fn test_gaussian_fchk() -> Result<()> {
     let mol = mp.get_molecule().expect("fchk mol");
     assert_eq!(mol.natoms(), 11);
 
-    let positions = mol.positions();
-    assert_relative_eq!(positions[0][0], -6.57759708E+00 * BOHR);
+    let position = mol.positions().next().unwrap();
+    assert_relative_eq!(position[0], -6.57759708E+00 * BOHR);
 
     Ok(())
 }

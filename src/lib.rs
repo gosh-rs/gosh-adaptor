@@ -10,7 +10,7 @@ mod vasp;
 
 // trait
 
-use gosh_core::guts::prelude::*;
+use gosh_core::gut::prelude::*;
 use gosh_models::ModelProperties;
 use std::path::Path;
 

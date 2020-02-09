@@ -6,7 +6,7 @@
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*mod.rs][mod.rs:1]]
 mod parse;
 
-use gosh_core::guts::prelude::*;
+use gosh_core::gut::prelude::*;
 use gosh_models::ModelProperties;
 
 use std::path::Path;

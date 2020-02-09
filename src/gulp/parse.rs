@@ -153,11 +153,11 @@ fn test_forces() {
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*model][model:1]]
 use gosh_core::gchemol::Molecule;
-use gosh_core::guts;
+use gosh_core::gut;
 use gosh_models::ModelProperties;
 
-use guts::fs::*;
-use guts::prelude::*;
+use gut::fs::*;
+use gut::prelude::*;
 
 fn get_gulp_results(s: &str) -> IResult<&str, ModelProperties> {
     do_parse!(
@@ -170,8 +170,7 @@ fn get_gulp_results(s: &str) -> IResult<&str, ModelProperties> {
             mp.set_energy(energy);
             mp.set_forces(forces);
             // construct molecule
-            let mut mol = Molecule::new("gulp");
-            mol.add_atoms_from(atoms);
+            let mol = Molecule::from_atoms(atoms);
             mp.set_molecule(mol);
             mp
         })
