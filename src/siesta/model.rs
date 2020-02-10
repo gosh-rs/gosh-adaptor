@@ -2,7 +2,7 @@
 
 // [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*imports][imports:1]]
 use gosh_core::gut;
-use gosh_models::ModelProperties;
+use gosh_model::ModelProperties;
 
 use gut::prelude::*;
 

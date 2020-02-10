@@ -11,7 +11,7 @@ mod vasp;
 // trait
 
 use gosh_core::gut::prelude::*;
-use gosh_models::ModelProperties;
+use gosh_model::ModelProperties;
 use std::path::Path;
 
 /// Common interface for model adaptors

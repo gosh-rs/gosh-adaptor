@@ -167,7 +167,7 @@ const DEBYE: f64 = 0.20819434;
 const KCAL_MOL: f64 = 1.0 / 23.061;
 
 use gosh_core::gchemol::Molecule;
-use gosh_models::ModelProperties;
+use gosh_model::ModelProperties;
 /// Get all calculation results.
 fn get_mopac_results(s: &str) -> IResult<&str, ModelProperties> {
     do_parse!(

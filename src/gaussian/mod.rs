@@ -8,7 +8,7 @@ mod gaussian_fchk;
 mod gaussian_out;
 
 use gosh_core::gut::prelude::*;
-use gosh_models::ModelProperties;
+use gosh_model::ModelProperties;
 
 use std::path::Path;
 

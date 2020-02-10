@@ -10,7 +10,7 @@ use gut::cli::*;
 use gut::fs::*;
 use structopt::*;
 
-use gosh_adaptors::*;
+use gosh_adaptor::*;
 
 /// Read calculated results, and format them as standard external model results.
 #[derive(Debug, StructOpt)]
