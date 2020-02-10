@@ -6,12 +6,17 @@ name = "gosh-adaptor"
 version = "0.0.4"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
+description = "Adaptor for chemical model"
+homepage = "https://github.com/gosh-rs/gosh-adaptor"
+repository = "https://github.com/gosh-rs/gosh-adaptor"
+license = "MIT OR Apache-2.0"
+exclude = ["bin/*", "docs/*", "lib/*"]
 
 [dependencies]
 nom = "5"
 structopt = "0.3"
-gosh-core = { version="0.0.1", path = "../core" }
-gosh-model = { version="0.0.8", path = "../models", features = ["adhoc"]}
+gosh-core = { version="0.0.1" }
+gosh-model = { version="0.0.9", features = ["adhoc"]}
 
 [dev-dependencies]
 approx = "0.3"
