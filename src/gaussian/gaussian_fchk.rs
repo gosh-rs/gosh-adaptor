@@ -31,7 +31,7 @@ pub(crate) fn parse_gaussian_fchk<P: AsRef<Path>>(fchkfile: P) -> Result<ModelPr
     }
 
     let r = TextReader::from_path(fchkfile)?;
-    for bunch in r.preceded_bunches(is_data_label) {
+    for bunch in r.partitions_preceded(is_data_label) {
         let mut data = bunch.splitn(2, "\n");
         let label = data.next().expect("chk label");
         let data = data.next().expect("chk data");
