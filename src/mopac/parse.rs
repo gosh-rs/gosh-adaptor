@@ -1,6 +1,4 @@
-// imports
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*imports][imports:1]]
+// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*imports][imports:1]]
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_until;
 use nom::character::complete::line_ending;
@@ -9,17 +7,18 @@ use nom::number::complete::double;
 use nom::sequence::tuple;
 
 use nom::do_parse;
-use nom::IResult;
+
+use gosh_core::gchemol::Molecule;
+use gosh_model::ModelProperties;
 // imports:1 ends here
 
-// energy
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*energy][energy:1]]
+// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*energy][energy:1]]
 //           TOTAL ENERGY            =       -720.18428 EV
 fn get_total_energy(s: &str) -> IResult<&str, f64> {
     let token = "TOTAL ENERGY            =";
-    let jump = jump_to(token);
+    let jump = context(&token[..], jump_to(token));
     let tag_ev = tag("EV");
+
     do_parse!(
         s,
         jump >> space0 >> energy: double >> space0 >> tag_ev >> eol >> (energy)
@@ -35,9 +34,7 @@ fn test_mopac_energy() {
 }
 // energy:1 ends here
 
-// dipole
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*dipole][dipole:1]]
+// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*dipole][dipole:1]]
 use crate::parser::*;
 
 //  DIPOLE           X         Y         Z       TOTAL
@@ -73,9 +70,7 @@ fn test_mopac_dipole() {
 }
 // dipole:1 ends here
 
-// structure and forces
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*structure and forces][structure and forces:1]]
+// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*structure and forces][structure and forces:1]]
 // PARAMETER     ATOM    TYPE            VALUE       GRADIENT
 //     1          1  C    CARTESIAN X    -1.644300   -55.598091  KCAL/ANGSTROM
 //     2          1  C    CARTESIAN Y    -0.817800    35.571574  KCAL/ANGSTROM
@@ -166,15 +161,16 @@ fn test_get_atoms() {
 const DEBYE: f64 = 0.20819434;
 const KCAL_MOL: f64 = 1.0 / 23.061;
 
-use gosh_core::gchemol::Molecule;
-use gosh_model::ModelProperties;
 /// Get all calculation results.
 fn get_mopac_results(s: &str) -> IResult<&str, ModelProperties> {
+    let energy = context("Energy", get_total_energy);
+    let data = context("Structure and gradients", get_structure_and_gradients);
+    let dipole = context("Dipole moment", get_dipole);
     do_parse!(
         s,
-        energy: get_total_energy >> // force consistent energy
-        data: get_structure_and_gradients >> // xxx
-        dipole : get_dipole                        >>
+        energy : energy >> // force consistent energy
+        data   : data   >> // coordinates and gradients
+        dipole : dipole >> // dipole moments
         ({
             let mut mp = ModelProperties::default();
             mp.set_energy(energy);
@@ -196,8 +192,10 @@ fn get_mopac_results(s: &str) -> IResult<&str, ModelProperties> {
         })
     )
 }
-
-pub(crate) fn get_results(s: &str) -> IResult<&str, Vec<ModelProperties>> {
-    many1(get_mopac_results)(s)
-}
 // structure and forces:1 ends here
+
+// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*pub][pub:1]]
+pub(crate) fn get_results(s: &str) -> IResult<&str, Vec<ModelProperties>> {
+    context("molecule structures", many1(get_mopac_results))(s)
+}
+// pub:1 ends here

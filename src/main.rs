@@ -1,13 +1,9 @@
-// main.rs
-// :PROPERTIES:
-// :header-args: :tangle src/main.rs
-// :END:
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*main.rs][main.rs:1]]
+// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*main.rs][main.rs:1]]
 use gosh_core::*;
 
 use gut::cli::*;
 use gut::fs::*;
+use gut::prelude::*;
 use structopt::*;
 
 use gosh_adaptor::*;
@@ -15,6 +11,9 @@ use gosh_adaptor::*;
 /// Read calculated results, and format them as standard external model results.
 #[derive(Debug, StructOpt)]
 struct Cli {
+    #[structopt(flatten)]
+    verbose: Verbosity,
+
     /// Chemical model, possible values: mopac, siesta, vasp, gulp.
     chemical_model: String,
 
@@ -27,11 +26,15 @@ struct Cli {
     all: bool,
 }
 
-fn main() -> CliResult {
+fn main() -> Result<()> {
     let args = Cli::from_args();
-    setup_logger();
+    args.verbose.setup_logger();
 
     let outfile = &args.outfile;
+    info!(
+        "parse computed file {:?} using model {:?}",
+        outfile, &args.chemical_model
+    );
     match args.chemical_model.as_str() {
         "mopac" => {
             let app = Mopac();
@@ -59,18 +62,20 @@ fn main() -> CliResult {
     Ok(())
 }
 
-fn parse<M: ModelAdaptor>(app: M, all: bool, outfile: &Path) -> CliResult {
+fn parse<M: ModelAdaptor>(app: M, all: bool, outfile: &Path) -> Result<()> {
     if all {
-        for d in app.parse_all(outfile).expect("parse failure") {
+        info!("Parsing all structure entries ...");
+        for d in app.parse_all(outfile).context("parse all failure")? {
             if d.is_empty() {
-                panic!("No data extracted from: {:?}", outfile);
+                bail!("No data extracted from: {:?}", outfile);
             }
             println!("{:}", d);
         }
     } else {
-        let d = app.parse_last(outfile).expect("parse last failure");
+        info!("Parsing the last structure entry ...");
+        let d = app.parse_last(outfile).context("parse last failure")?;
         if d.is_empty() {
-            panic!("No data extracted from: {:?}", outfile);
+            bail!("No data extracted from: {:?}", outfile);
         }
         println!("{:}", d);
     }
