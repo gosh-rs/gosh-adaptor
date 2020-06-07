@@ -91,8 +91,12 @@ fn get_results(s: &str) -> IResult<&str, ModelProperties> {
         ({
             let mut mp = ModelProperties::default();
             mp.set_energy(energy);
-            let (_, forces): (Vec<[f64; 3]>, Vec<[f64; 3]>) = data.into_iter().unzip();
+            let (positions, forces): (Vec<[f64; 3]>, Vec<[f64; 3]>) = data.into_iter().unzip();
             mp.set_forces(forces);
+            // do not bother to parse element data
+            let atoms = positions.into_iter().map(|p| ("C", p));
+            let mol = Molecule::from_atoms(atoms);
+            mp.set_molecule(mol);
             mp
         })
     )
@@ -100,8 +104,27 @@ fn get_results(s: &str) -> IResult<&str, ModelProperties> {
 
 /// Get all results for multiple structures.
 pub(crate) fn parse_vasp_outcar<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProperties>> {
-    let s = read_file(fout)?;
-    let (_, mps) = many1(get_results)(&s).map_err(|e| format_err!("Failed to parse VASP results:\n{:?}", e))?;
+    use gosh_core::gchemol::prelude::*;
+
+    let s = read_file(&fout)?;
+    let (_, mut mps) = many1(get_results)(&s).map_err(|e| format_err!("Failed to parse VASP results:\n{:?}", e))?;
+
+    // FIXME: still looks hacky
+    // recover element data from CONTCAR
+    let contcar = fout.as_ref().with_file_name("CONTCAR");
+    if let Ok(parent_mol) = Molecule::from_file(contcar).context("read molecule from CONTCAR") {
+        for mp in &mut mps {
+            let positions = mp
+                .get_molecule()
+                .and_then(|mol| Some(mol.positions()))
+                .expect("vasp no positions");
+            let mut mol = parent_mol.clone();
+            mol.set_positions(positions);
+            mp.set_molecule(mol);
+        }
+    } else {
+        warn!("CONTCAR not found, molecule data could be incomplete!");
+    }
     Ok(mps)
 }
 // model:1 ends here

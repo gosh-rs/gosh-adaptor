@@ -1,5 +1,3 @@
-# cargo
-
 # [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*cargo][cargo:1]]
 [package]
 name = "gosh-adaptor"
