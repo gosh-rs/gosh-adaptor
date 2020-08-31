@@ -1,7 +1,7 @@
-# [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*cargo][cargo:1]]
+# [[file:adaptors.note::*cargo][cargo:1]]
 [package]
 name = "gosh-adaptor"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 description = "Adaptor for chemical model"

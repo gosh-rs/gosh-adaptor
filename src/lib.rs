@@ -2,6 +2,8 @@
 
 mod parser;
 
+mod null;
+
 mod gaussian;
 mod gulp;
 mod mopac;
@@ -21,7 +23,7 @@ pub trait ModelAdaptor {
     /// # Return
     ///
     /// - ModelProperties, the calculated properties, including energy, forces, ...
-    fn parse_last<P: AsRef<Path>>(&self, outfile: P) -> Result<ModelProperties>;
+    fn parse_last<P: AsRef<Path>>(&self, _outfile: P) -> Result<ModelProperties>;
 
     /// Parse all properties in multi-step calculation, sush as optimization or
     /// multi-molecule batch calculation.
@@ -29,7 +31,7 @@ pub trait ModelAdaptor {
     /// # Return
     ///
     /// - a list of ModelProperties
-    fn parse_all<P: AsRef<Path>>(&self, outfile: P) -> Result<Vec<ModelProperties>>;
+    fn parse_all<P: AsRef<Path>>(&self, _outfile: P) -> Result<Vec<ModelProperties>>;
 }
 
 // pub
