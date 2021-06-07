@@ -1,4 +1,4 @@
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*main.rs][main.rs:1]]
+// [[file:../adaptors.note::*main.rs][main.rs:1]]
 use gosh_core::*;
 
 use gut::cli::*;
@@ -54,6 +54,10 @@ fn main() -> Result<()> {
         }
         "gaussian" => {
             let app = Gaussian();
+            parse(app, args.all, outfile)?;
+        }
+        "null" => {
+            let app = Null();
             parse(app, args.all, outfile)?;
         }
         _ => todo!(),

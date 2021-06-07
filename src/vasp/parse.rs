@@ -1,12 +1,12 @@
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*imports][imports:1]]
+// [[file:../../adaptors.note::*imports][imports:1]]
 use crate::parser::*;
 // imports:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*energy][energy:1]]
+// [[file:../../adaptors.note::*energy][energy:1]]
 fn get_total_energy(s: &str) -> IResult<&str, f64> {
-    let token = "\n  free  energy   TOTEN  =";
-    let jump = jump_to(token);
-    let tag_ev = tag("eV");
+    let mut token = "\n  free  energy   TOTEN  =";
+    let mut jump = jump_to(token);
+    let mut tag_ev = tag("eV");
     do_parse!(
         s,
         jump >> space0 >> e: double >> space0 >> tag_ev >> eol >> (e)
@@ -27,11 +27,11 @@ fn test_vasp_energy() {
 }
 // energy:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*forces][forces:1]]
+// [[file:../../adaptors.note::*forces][forces:1]]
 fn get_positions_and_forces(s: &str) -> IResult<&str, Vec<([f64; 3], [f64; 3])>> {
-    let token = " POSITION                                       TOTAL-FORCE (eV/Angst)";
-    let jump = jump_to(token);
-    let read_data = many1(position_and_force);
+    let mut token = " POSITION                                       TOTAL-FORCE (eV/Angst)";
+    let mut jump = jump_to(token);
+    let mut read_data = many1(position_and_force);
     do_parse!(
         s,
         jump >> eol >>     // head line
@@ -73,7 +73,7 @@ fn test_vasp_forces() {
 }
 // forces:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*model][model:1]]
+// [[file:../../adaptors.note::*model][model:1]]
 use gosh_core::gchemol::Molecule;
 use gosh_core::gut;
 use gosh_model::ModelProperties;
@@ -82,8 +82,8 @@ use gut::fs::*;
 use gut::prelude::*;
 
 fn get_results(s: &str) -> IResult<&str, ModelProperties> {
-    let energy = context("Energy", get_total_energy);
-    let positions_and_forces = context("Positions and forces", get_positions_and_forces);
+    let mut energy = context("Energy", get_total_energy);
+    let mut positions_and_forces = context("Positions and forces", get_positions_and_forces);
     do_parse!(
         s,
         data: get_positions_and_forces >> // positions and forces
@@ -129,7 +129,7 @@ pub(crate) fn parse_vasp_outcar<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProp
 }
 // model:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*test][test:1]]
+// [[file:../../adaptors.note::*test][test:1]]
 #[test]
 fn test_parse_vasp_outcar() {
     // vasp 5.3.5, single point

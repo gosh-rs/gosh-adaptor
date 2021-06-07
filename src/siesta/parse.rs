@@ -1,4 +1,4 @@
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*imports][imports:1]]
+// [[file:../../adaptors.note::*imports][imports:1]]
 use nom::character::complete::digit1;
 use nom::character::complete::line_ending;
 use nom::character::complete::{space0, space1};
@@ -7,7 +7,7 @@ use nom::number::complete::double;
 use crate::parser::*;
 // imports:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*energy][energy:1]]
+// [[file:../../adaptors.note::*energy][energy:1]]
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_until;
 use nom::sequence::preceded;
@@ -53,7 +53,7 @@ pub fn get_total_energy_many(s: &str) -> IResult<&str, Vec<f64>> {
 }
 // energy:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*forces][forces:1]]
+// [[file:../../adaptors.note::*forces][forces:1]]
 // 1   0.664163041E-01   0.463152759E-01   0.711250774E-01
 fn read_forces_line(s: &str) -> IResult<&str, [f64; 3]> {
     nom::do_parse!(
@@ -110,7 +110,7 @@ fn test_get_forces() {
 }
 // forces:1 ends here
 
-// [[file:~/Workspace/Programming/gosh-rs/adaptor/adaptors.note::*structure][structure:1]]
+// [[file:../../adaptors.note::*structure][structure:1]]
 fn get_cell(s: &str) -> IResult<&str, [[f64; 3]; 3]> {
     nom::do_parse!(
         s,

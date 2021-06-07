@@ -1,9 +1,4 @@
-// mod.rs
-// :PROPERTIES:
-// :header-args: :tangle src/mopac/mod.rs
-// :END:
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*mod.rs][mod.rs:1]]
+// [[file:../../adaptors.note::*mod.rs][mod.rs:1]]
 mod model;
 mod parse;
 
