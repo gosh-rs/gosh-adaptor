@@ -1,14 +1,7 @@
 // [[file:../../adaptors.note::*imports][imports:1]]
+use gosh_core::gut::prelude::*;
+
 use gosh_core::text_parser::parsers::*;
-
-use nom::bytes::complete::tag;
-use nom::bytes::complete::take_until;
-use nom::character::complete::line_ending;
-use nom::character::complete::{space0, space1};
-use nom::number::complete::double;
-use nom::sequence::tuple;
-
-use nom::do_parse;
 
 use gosh_core::gchemol::Molecule;
 use gosh_model::ModelProperties;

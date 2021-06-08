@@ -151,8 +151,7 @@ fn get_gulp_results(s: &str) -> IResult<&str, ModelProperties> {
 /// Get all results for multiple structures.
 pub(crate) fn get_gulp_results_all<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProperties>> {
     let s = read_file(fout)?;
-    let (_, mps) = many1(get_gulp_results)(&s)
-        .map_err(|e| format_err!("Failed to parse gulp results:\n{:?}", e))?;
+    let (_, mps) = many1(get_gulp_results)(&s).nom_trace_err()?;
     Ok(mps)
 }
 

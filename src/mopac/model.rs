@@ -3,35 +3,15 @@ use gosh_core::gut::fs::*;
 use gosh_core::gut::prelude::*;
 use gosh_model::ModelProperties;
 
-use crate::parser::nom;
-
 use super::parse::*;
 // imports:1 ends here
 
 // [[file:../../adaptors.note::*pub][pub:1]]
-macro_rules! trace_nom_err {
-    ($error:expr, $input:expr) => {
-        // early return when found the right parser
-        match $error {
-            nom::Err::Failure(e) | nom::Err::Error(e) => {
-                error!("encouted nom parsing failure.");
-                let s = nom::error::convert_error($input, e);
-                format_err!("Text parsing failed. Traceback:\n{}", s)
-            }
-            _ => {
-                error!("nom Incomplete error should be found here.");
-                unreachable!()
-            }
-        }
-    };
-}
-
 pub(crate) fn get_mopac_results<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProperties>> {
+    use gosh_core::text_parser::parsers::*;
+
     let s = read_file(fout)?;
-    // FIXME: 2021-06-07: why need this since nom 6?
-    let s = s.as_str();
-    let (_, mps) = get_results(s).map_err(|e| trace_nom_err!(e, s))?;
-    // let (_, mps) = get_results(&s).unwrap();
+    let (_, mps) = get_results(&s).nom_trace_err()?;
 
     Ok(mps)
 }

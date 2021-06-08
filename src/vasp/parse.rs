@@ -107,7 +107,7 @@ pub(crate) fn parse_vasp_outcar<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProp
     use gosh_core::gchemol::prelude::*;
 
     let s = read_file(&fout)?;
-    let (_, mut mps) = many1(get_results)(&s).map_err(|e| format_err!("Failed to parse VASP results:\n{:?}", e))?;
+    let (_, mut mps) = many1(get_results)(&s).nom_trace_err()?;
 
     // FIXME: still looks hacky
     // recover element data from CONTCAR
