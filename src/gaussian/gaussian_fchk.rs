@@ -82,7 +82,7 @@ pub(crate) fn parse_gaussian_fchk<P: AsRef<Path>>(fchkfile: P) -> Result<ModelPr
 
 #[test]
 fn test_gaussian_fchk() -> Result<()> {
-    use approx::*;
+    use vecfx::approx::*;
 
     let fchkfile = "tests/files/gaussian/Test.FChk";
     let mp = parse_gaussian_fchk(fchkfile)?;
