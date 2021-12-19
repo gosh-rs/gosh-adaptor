@@ -29,7 +29,7 @@ fn test_mopac_energy() {
 }
 // energy:1 ends here
 
-// [[file:../../adaptors.note::*dipole][dipole:1]]
+// [[file:../../adaptors.note::8c9b7cb0][8c9b7cb0]]
 //  DIPOLE           X         Y         Z       TOTAL
 //  POINT-CHG.    -0.521    -0.058     0.081     0.531
 //  HYBRID        -0.027    -0.069    -0.010     0.075
@@ -39,7 +39,7 @@ fn get_dipole(s: &str) -> IResult<&str, [f64; 3]> {
     let goto_token = take_until(token);
     let header = tag(token);
     let tag_sum = tag(" SUM");
-    nom::do_parse!(
+    do_parse!(
         s,
         goto_token >>              // jump to the relevant line
         header     >> eol       >> // head line
@@ -61,7 +61,7 @@ fn test_mopac_dipole() {
     assert_eq!(-0.127, y);
     assert_eq!(0.071, z);
 }
-// dipole:1 ends here
+// 8c9b7cb0 ends here
 
 // [[file:../../adaptors.note::*structure and forces][structure and forces:1]]
 // PARAMETER     ATOM    TYPE            VALUE       GRADIENT

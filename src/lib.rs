@@ -34,6 +34,11 @@ pub trait ModelAdaptor {
     fn parse_all<P: AsRef<Path>>(&self, _outfile: P) -> Result<Vec<ModelProperties>>;
 }
 
+// imports
+// #+name: 1650f65e
+
+use gosh_core::*;
+
 // pub
 
 pub use crate::gulp::Gulp;

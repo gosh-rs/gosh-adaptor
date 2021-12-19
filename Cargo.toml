@@ -1,4 +1,4 @@
-# [[file:adaptors.note::*cargo][cargo:1]]
+# [[file:adaptors.note::b98eeb06][b98eeb06]]
 [package]
 name = "gosh-adaptor"
 version = "0.0.6"
@@ -15,9 +15,6 @@ structopt = "0.3"
 gosh-core = { version=">=0.0.2" }
 gosh-model = { version=">=0.0.9" }
 
-[dev-dependencies]
-approx = "0.5"
-
 [features]
 adhoc = [] # for adhoc hacking
-# cargo:1 ends here
+# b98eeb06 ends here

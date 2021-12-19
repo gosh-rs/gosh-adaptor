@@ -1,4 +1,7 @@
 // imports
+// #+name: 2336ef22
+
+use super::*;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -79,6 +82,7 @@ pub(crate) fn parse_gaussian_fchk<P: AsRef<Path>>(fchkfile: P) -> Result<ModelPr
 }
 
 // test
+// #+name: 14193c61
 
 #[test]
 fn test_gaussian_fchk() -> Result<()> {

@@ -1,9 +1,6 @@
-// mod.rs
-// :PROPERTIES:
-// :header-args: :tangle src/gaussian/mod.rs
-// :END:
+// [[file:../../adaptors.note::b33ce62d][b33ce62d]]
+use super::*;
 
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*mod.rs][mod.rs:1]]
 mod gaussian_fchk;
 mod gaussian_out;
 
@@ -24,4 +21,4 @@ impl crate::ModelAdaptor for Gaussian {
         self::gaussian_fchk::parse_gaussian_fchk(outfile)
     }
 }
-// mod.rs:1 ends here
+// b33ce62d ends here

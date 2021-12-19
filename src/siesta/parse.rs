@@ -53,10 +53,10 @@ pub fn get_total_energy_many(s: &str) -> IResult<&str, Vec<f64>> {
 }
 // energy:1 ends here
 
-// [[file:../../adaptors.note::*forces][forces:1]]
+// [[file:../../adaptors.note::099f46fd][099f46fd]]
 // 1   0.664163041E-01   0.463152759E-01   0.711250774E-01
 fn read_forces_line(s: &str) -> IResult<&str, [f64; 3]> {
-    nom::do_parse!(
+    do_parse!(
         s,
         space0 >> digit1 >> space1 >> xyz: xyz_array >> line_ending >> (xyz)
     )
@@ -108,11 +108,11 @@ fn test_get_forces() {
     let (_, forces) = get_forces(line).unwrap();
     assert_eq!(32, forces.len());
 }
-// forces:1 ends here
+// 099f46fd ends here
 
-// [[file:../../adaptors.note::*structure][structure:1]]
+// [[file:../../adaptors.note::68246ec1][68246ec1]]
 fn get_cell(s: &str) -> IResult<&str, [[f64; 3]; 3]> {
-    nom::do_parse!(
+    do_parse!(
         s,
         space0 >> va: xyz_array >> line_ending >> // cell vector a
         space0 >> vb: xyz_array >> line_ending >> // cell vector b
@@ -124,7 +124,7 @@ fn get_cell(s: &str) -> IResult<&str, [[f64; 3]; 3]> {
 // read element and coordinates
 // 4    45       0.993284236       0.996245743       0.237524061
 fn read_atom(s: &str) -> IResult<&str, (&str, [f64; 3])> {
-    nom::do_parse!(
+    do_parse!(
         s,
         space0  >> digit1 >> space1 >>      // atom type
         n:      digit1    >> space1 >>      // atomic number
@@ -186,4 +186,4 @@ fn test_get_structure() {
     let (_, (cell, atoms)) = get_structure(s).unwrap();
     assert_eq!(atoms.len(), 32);
 }
-// structure:1 ends here
+// 68246ec1 ends here
