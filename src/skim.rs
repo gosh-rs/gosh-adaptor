@@ -180,3 +180,27 @@ impl Glance {
         Ok(s.join("\n"))
     }
 }
+
+// test
+// #+name: 37af7667
+
+#[test]
+fn test_skim() -> Result<()> {
+    let f = "./tests/files/siesta-opt/siesta.log";
+    let mut glance = Glance::try_from_path(f.as_ref())?;
+    glance.goto_line(22);
+    glance.select_lines_relative("1-3");
+    let x = glance.print_selection();
+    assert_eq!(x, "1 1 H 3\n2 6 C 1\n3 8 O 1\n");
+
+    glance.search_forward("^siesta: Atomic forces")?;
+    glance.select_lines_relative("1");
+    let x = glance.print_selection();
+    assert_eq!(x, "     1    0.171561   -0.146511    0.151677\n");
+
+    glance.select_lines_relative("1-2");
+    let x = glance.print_column_selection("7-30")?;
+    assert_eq!(x, "   0.171561   -0.146511\n   0.076999    0.320968");
+
+    Ok(())
+}
