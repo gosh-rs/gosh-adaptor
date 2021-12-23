@@ -6,6 +6,7 @@ mod gulp;
 mod mopac;
 mod null;
 mod parser;
+mod repl;
 mod siesta;
 mod skim;
 mod vasp;
