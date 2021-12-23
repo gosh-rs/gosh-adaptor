@@ -41,6 +41,7 @@ pub trait ModelAdaptor {
 use gosh_core::*;
 
 // pub
+// #+name: 111a01d3
 
 pub use crate::gulp::Gulp;
 pub use crate::mopac::Mopac;
@@ -48,3 +49,5 @@ pub use crate::siesta::Siesta;
 pub use crate::vasp::Vasp;
 pub use crate::gaussian::Gaussian;
 pub use crate::null::Null;
+
+pub use crate::repl::repl_enter_main;

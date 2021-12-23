@@ -90,19 +90,19 @@ fn test_line_spec() -> Result<()> {
     Ok(())
 }
 
-// core
+// api/core
 // #+name: e9b2e6d8
 
 use text_parser::TextViewer;
 
 #[derive(Debug, Clone)]
-struct Glance {
+pub struct Glance {
     view: TextViewer,
     selections: Vec<Selection>,
 }
 
 impl Glance {
-    fn try_from_path(p: &Path) -> Result<Self> {
+    pub fn try_from_path(p: &Path) -> Result<Self> {
         let view = TextViewer::try_from_path(p)?;
         let x = Self {
             view,
@@ -111,41 +111,41 @@ impl Glance {
         Ok(x)
     }
 
-    fn goto_line(&mut self, n: usize) {
+    pub fn goto_line(&mut self, n: usize) {
         self.view.goto_line(n);
     }
 
-    fn goto_first_line(&mut self) {
+    pub fn goto_first_line(&mut self) {
         self.view.goto_line(1);
     }
 
-    fn goto_last_line(&mut self) {
+    pub fn goto_last_line(&mut self) {
         let n = self.view.num_lines();
         self.view.goto_line(n);
     }
 
-    fn next_line(&mut self, n: usize) {
+    pub fn next_line(&mut self, n: usize) {
         let m = self.view.current_line_num();
         self.view.goto_line(m + n);
     }
 
-    fn prev_line(&mut self, n: usize) {
+    pub fn prev_line(&mut self, n: usize) {
         let m = self.view.current_line_num();
         self.view.goto_line(m - n);
     }
 
-    fn search_forward(&mut self, pattern: &str) -> Result<usize> {
+    pub fn search_forward(&mut self, pattern: &str) -> Result<usize> {
         self.view.search_forward(pattern)
     }
 
-    fn select_lines(&mut self, spec: &str) -> Result<()> {
+    pub fn select_lines(&mut self, spec: &str) -> Result<()> {
         let s = Selection::parse_multi_selection(spec)?;
         self.selections = s;
 
         Ok(())
     }
 
-    fn select_lines_relative(&mut self, spec: &str) -> Result<()> {
+    pub fn select_lines_relative(&mut self, spec: &str) -> Result<()> {
         let n = self.view.current_line_num();
         let mut selections = Selection::parse_multi_selection(spec)?;
         for selection in selections.iter_mut() {
@@ -156,7 +156,7 @@ impl Glance {
 
         Ok(())
     }
-    fn print_selection(&self) -> String {
+    pub fn print_selection(&self) -> String {
         let s = self
             .selections
             .iter()
@@ -166,7 +166,7 @@ impl Glance {
         s.join("\n")
     }
 
-    fn print_column_selection(&self, col_spec: &str) -> Result<String> {
+    pub fn print_column_selection(&self, col_spec: &str) -> Result<String> {
         let c = Selection::parse_selection(col_spec)?;
         let s = self
             .selections
