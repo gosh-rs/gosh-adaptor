@@ -132,7 +132,7 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 enum Cmd {
-    /// Quit go shell.
+    /// Quit shell.
     #[clap(name = "quit", alias = "q", alias = "exit")]
     Quit {},
 
@@ -140,7 +140,9 @@ enum Cmd {
     #[clap(name = "help", alias = "h", alias = "?")]
     Help {},
 
-    /// Load file from `path` for skimming.
+    /// Load file from `path` for processing.
+    ///
+    /// WARNING: load very large file may lead to out of memory error.
     #[clap(name = "load")]
     Load {
         #[clap(name = "FILENAME")]
@@ -187,7 +189,11 @@ enum Cmd {
     PrintSelection {
         /// Print the text within selected columns.
         #[clap(long)]
-        columns: Option<String>
+        columns: Option<String>,
+
+        /// Writes selection into external command through a pipe.
+        #[clap(long)]
+        pipe: Option<String>,
     },
 }
 
@@ -253,14 +259,27 @@ impl Interpreter {
                 let glance = self.get_glance()?;
                 glance.search_forward(pattern)?;
             }
-            Cmd::PrintSelection { columns } => {
+            Cmd::PrintSelection { columns, pipe } => {
                 let glance = self.get_glance()?;
                 let x = if let Some(col_spec) = columns {
                     glance.print_column_selection(col_spec)?
                 } else {
                     glance.print_selection()
                 };
-                println!("{}", x);
+                if let Some(cmdline) = pipe {
+                    if let Some(command) = shlex::split(cmdline) {
+                        let x = match command.as_slice() {
+                            [command, args@..] => gut::cli::duct::cmd(command, args).stdin_bytes(x).read()?,
+                            [command] => gut::cli::duct::cmd!(command).stdin_bytes(x).read()?,
+                            _ => {
+                                bail!("invalid cmdline: {}", cmdline);
+                            }
+                        };
+                        println!("{}", x);
+                    }
+                } else {
+                    println!("{}", x);
+                }
             }
             Cmd::Println { text } => {
                 println!("{}", text);
