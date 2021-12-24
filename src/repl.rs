@@ -152,6 +152,10 @@ enum Cmd {
     GotoLine {
         #[clap(name = "LINE-NUMBER")]
         line_num: usize,
+
+        /// Specify line range relative to current line (cursor position)
+        #[clap(long)]
+        relative: bool,
     },
 
     /// Display a line of `text`
@@ -237,9 +241,13 @@ impl Interpreter {
             Cmd::Load { path } => {
                 self.glance = Glance::try_from_path(path.as_ref())?.into();
             }
-            Cmd::GotoLine { line_num } => {
+            Cmd::GotoLine { line_num, relative } => {
                 let glance = self.get_glance()?;
-                glance.goto_line(*line_num);
+                if *relative {
+                    glance.goto_line_relative(*line_num);
+                } else {
+                    glance.goto_line(*line_num);
+                }
             }
             Cmd::SearchForward { pattern } => {
                 let glance = self.get_glance()?;

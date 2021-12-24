@@ -115,6 +115,11 @@ impl Glance {
         self.view.goto_line(n);
     }
 
+    pub fn goto_line_relative(&mut self, n: usize) {
+        let m = self.view.current_line_num();
+        self.view.goto_line(n + m - 1);
+    }
+
     pub fn goto_first_line(&mut self) {
         self.view.goto_line(1);
     }
@@ -149,8 +154,8 @@ impl Glance {
         let n = self.view.current_line_num();
         let mut selections = Selection::parse_multi_selection(spec)?;
         for selection in selections.iter_mut() {
-            selection.line_beg += n;
-            selection.line_end += n;
+            selection.line_beg += n - 1;
+            selection.line_end += n - 1;
         }
         self.selections = selections;
 
@@ -189,16 +194,16 @@ fn test_skim() -> Result<()> {
     let f = "./tests/files/siesta-opt/siesta.log";
     let mut glance = Glance::try_from_path(f.as_ref())?;
     glance.goto_line(22);
-    glance.select_lines_relative("1-3");
+    glance.select_lines_relative("2-4");
     let x = glance.print_selection();
     assert_eq!(x, "1 1 H 3\n2 6 C 1\n3 8 O 1\n");
 
     glance.search_forward("^siesta: Atomic forces")?;
-    glance.select_lines_relative("1");
+    glance.select_lines_relative("2");
     let x = glance.print_selection();
     assert_eq!(x, "     1    0.171561   -0.146511    0.151677\n");
 
-    glance.select_lines_relative("1-2");
+    glance.select_lines_relative("2-3");
     let x = glance.print_column_selection("7-30")?;
     assert_eq!(x, "   0.171561   -0.146511\n   0.076999    0.320968");
 
