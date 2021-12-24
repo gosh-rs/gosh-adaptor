@@ -92,10 +92,23 @@ impl Action {
             bail!("File not loaded yet!");
         }
     }
+}
+
+impl repl::Actionable for Action {
+    type Command = Cmd;
+
+    fn try_parse_from<I, T>(iter: I) -> Result<Self::Command>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<std::ffi::OsString> + Clone,
+    {
+        let r = Cmd::try_parse_from(iter)?;
+        Ok(r)
+    }
 
     /// Take action on gosh-parser commands. Return Ok(true) will exit shell
     /// loop.
-    pub fn act_on(&mut self, cmd: &Cmd) -> Result<bool> {
+    fn act_on(&mut self, cmd: &Cmd) -> Result<bool> {
         match cmd {
             Cmd::Quit {} => return Ok(true),
             Cmd::Help {} => {
@@ -165,13 +178,13 @@ impl Action {
 
 // #+name: f8cc322b
 
-impl Cmd {
-    pub fn get_subcommands() -> Vec<String> {
+impl repl::HelpfulCommand for Cmd {
+    fn get_subcommands() -> Vec<String> {
         let app = Cmd::into_app();
         app.get_subcommands().map(|s| s.get_name().into()).collect()
     }
 
-    pub fn suitable_for_path_complete(line: &str) -> bool {
+    fn suitable_for_path_complete(line: &str) -> bool {
         line.trim().starts_with("load")
     }
 }
