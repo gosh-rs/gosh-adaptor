@@ -1,19 +1,18 @@
-// imports
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*imports][imports:1]]
-use gosh_core::guts::fs::*;
-use gosh_core::guts::prelude::*;
-use gosh_models::ModelProperties;
+// [[file:../../adaptors.note::*imports][imports:1]]
+use gosh_core::gut::fs::*;
+use gosh_core::gut::prelude::*;
+use gosh_model::ModelProperties;
 
 use super::parse::*;
 // imports:1 ends here
 
-// pub
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*pub][pub:1]]
+// [[file:../../adaptors.note::*pub][pub:1]]
 pub(crate) fn get_mopac_results<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProperties>> {
+    use gosh_core::text_parser::parsers::*;
+
     let s = read_file(fout)?;
-    let (_, mps) = get_results(&s).unwrap();
+    let (_, mps) = get_results(&s).nom_trace_err()?;
+
     Ok(mps)
 }
 

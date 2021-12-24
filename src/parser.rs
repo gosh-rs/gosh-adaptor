@@ -1,103 +1,177 @@
-// parser.rs
-// :PROPERTIES:
-// :header-args: :comments org :tangle src/parser.rs
-// :END:
+// imports
+// #+name: 70d3dbdb
 
-pub use nom::bytes::complete::tag;
-pub use nom::bytes::complete::take_until;
-pub use nom::character::complete::{alpha0, alpha1};
-pub use nom::character::complete::{alphanumeric0, alphanumeric1};
-pub use nom::character::complete::{digit0, digit1};
-pub use nom::character::complete::{space0, space1};
-pub use nom::multi::{many0, many1};
-pub use nom::number::complete::double;
-pub use nom::IResult;
+use super::*;
 
-// macros
-pub use nom::do_parse;
+// cmd
+// #+name: 724d9a95
 
-/// Read the remaining line including eol
-pub fn read_line(s: &str) -> IResult<&str, &str> {
-    use nom::combinator::recognize;
-    use nom::sequence::pair;
+use clap::IntoApp;
+use clap::Parser;
 
-    recognize(pair(take_until("\n"), tag("\n")))(s)
+#[derive(Parser, Debug)]
+pub enum Cmd {
+    /// Quit shell.
+    #[clap(name = "quit", alias = "q", alias = "exit")]
+    Quit {},
+
+    /// Show available commands.
+    #[clap(name = "help", alias = "h", alias = "?")]
+    Help {},
+
+    /// Load file from `path` for processing.
+    ///
+    /// WARNING: load very large file may lead to out of memory error.
+    #[clap(name = "load")]
+    Load {
+        #[clap(name = "FILENAME")]
+        path: String,
+    },
+
+    /// Move cursor to line `line_num`
+    #[clap(name = "goto-line")]
+    GotoLine {
+        #[clap(name = "LINE-NUMBER")]
+        line_num: usize,
+
+        /// Specify line range relative to current line (cursor position)
+        #[clap(long)]
+        relative: bool,
+    },
+
+    /// Display a line of `text`
+    #[clap(name = "println")]
+    Println { text: String },
+
+    /// Move cursor the line matching search `pattern`.
+    #[clap(name = "search-forward")]
+    SearchForward {
+        #[clap(name = "PATTERN")]
+        pattern: String,
+    },
+
+    /// Select a list of lines: 1-3 or 4
+    #[clap(name = "select-lines")]
+    SelectLines {
+        #[clap(name = "LINE-SPECS")]
+        specs: String,
+
+        /// Specify line range relative to current line (cursor position)
+        #[clap(long)]
+        relative: bool,
+    },
+
+    /// Print selected lines
+    #[clap(name = "print-selection")]
+    PrintSelection {
+        /// Print the text within selected columns.
+        #[clap(long)]
+        columns: Option<String>,
+
+        /// Writes selection into external command through a pipe.
+        #[clap(long)]
+        pipe: Option<String>,
+    },
 }
 
-#[test]
-fn test_read_line() {
-    let txt = "first line\nsecond line\r\nthird line\n";
-    let (rest, line) = read_line(txt).unwrap();
-    assert_eq!(line, "first line\n");
-    let (rest, line) = read_line(rest).unwrap();
-    assert_eq!(line, "second line\r\n");
-    let (rest, line) = read_line(rest).unwrap();
-    assert_eq!(line, "third line\n");
-    assert_eq!(rest, "");
+// action
+// #+name: a252f98f
+
+use crate::skim::Glance;
+
+#[derive(Debug, Default, Clone)]
+pub struct Action {
+    glance: Option<Glance>,
 }
 
-/// Match line ending preceded with zero or more whitespace chracters
-pub fn eol(s: &str) -> IResult<&str, &str> {
-    use nom::character::complete::line_ending;
+impl Action {
+    fn get_glance(&mut self) -> Result<&mut Glance> {
+        if let Some(glance) = self.glance.as_mut() {
+            Ok(glance)
+        } else {
+            bail!("File not loaded yet!");
+        }
+    }
 
-    nom::sequence::terminated(space0, line_ending)(s)
+    /// Take action on gosh-parser commands. Return Ok(true) will exit shell
+    /// loop.
+    pub fn act_on(&mut self, cmd: &Cmd) -> Result<bool> {
+        match cmd {
+            Cmd::Quit {} => return Ok(true),
+            Cmd::Help {} => {
+                let mut app = Cmd::into_app();
+                app.print_help();
+                println!("");
+            }
+            Cmd::Load { path } => {
+                self.glance = Glance::try_from_path(path.as_ref())?.into();
+            }
+            Cmd::GotoLine { line_num, relative } => {
+                let glance = self.get_glance()?;
+                if *relative {
+                    glance.goto_line_relative(*line_num);
+                } else {
+                    glance.goto_line(*line_num);
+                }
+            }
+            Cmd::SearchForward { pattern } => {
+                let glance = self.get_glance()?;
+                glance.search_forward(pattern)?;
+            }
+            Cmd::PrintSelection { columns, pipe } => {
+                let glance = self.get_glance()?;
+                let x = if let Some(col_spec) = columns {
+                    glance.print_column_selection(col_spec)?
+                } else {
+                    glance.print_selection()
+                };
+                if let Some(cmdline) = pipe {
+                    if let Some(command) = shlex::split(cmdline) {
+                        let x = match command.as_slice() {
+                            [command, args @ ..] => gut::cli::duct::cmd(command, args).stdin_bytes(x).read()?,
+                            [command] => gut::cli::duct::cmd!(command).stdin_bytes(x).read()?,
+                            _ => {
+                                bail!("invalid cmdline: {}", cmdline);
+                            }
+                        };
+                        println!("{}", x);
+                    }
+                } else {
+                    println!("{}", x);
+                }
+            }
+            Cmd::Println { text } => {
+                println!("{}", text);
+            }
+            Cmd::SelectLines { specs, relative } => {
+                let glance = self.get_glance()?;
+                if *relative {
+                    glance.select_lines_relative(specs);
+                } else {
+                    glance.select_lines(specs);
+                }
+            }
+            o => {
+                eprintln!("{:?}: not implemented yet!", o);
+            }
+        }
+
+        Ok(false)
+    }
 }
 
-/// Anything except whitespace, this parser will not consume "\n" character
-pub fn not_space(s: &str) -> IResult<&str, &str> {
-    use nom::bytes::complete::is_not;
+// completion
+// 见 [[id:9da0335f-054e-45bc-aba0-2425017fda2a][repl/helper.rs]]
 
-    is_not(" \t\r\n")(s)
-}
+// #+name: f8cc322b
 
-/// Match one unsigned integer: 123
-pub fn unsigned_digit(s: &str) -> IResult<&str, usize> {
-    use nom::combinator::map;
+impl Cmd {
+    pub fn get_subcommands() -> Vec<String> {
+        let app = Cmd::into_app();
+        app.get_subcommands().map(|s| s.get_name().into()).collect()
+    }
 
-    map(digit1, |s: &str| s.parse().unwrap())(s)
-}
-
-/// Parse a line containing an unsigned integer number.
-pub fn read_usize(s: &str) -> IResult<&str, usize> {
-    use nom::character::complete::line_ending;
-
-    // allow white spaces
-    let p = nom::sequence::delimited(space0, unsigned_digit, space0);
-    nom::sequence::terminated(p, line_ending)(s)
-}
-
-#[test]
-fn test_numbers() {
-    let s = "12x";
-    let (r, n) = unsigned_digit(s).unwrap();
-    assert_eq!(n, 12);
-    assert_eq!(r, "x");
-
-    let (r, n) = read_usize(" 12 \n").unwrap();
-    assert_eq!(n, 12);
-    assert_eq!(r, "");
-}
-
-/// Consume three float numbers separated by one or more spaces. Return xyz array.
-pub fn xyz_array(s: &str) -> IResult<&str, [f64; 3]> {
-    use nom::sequence::tuple;
-
-    let (r, (x, _, y, _, z)) = tuple((double, space1, double, space1, double))(s)?;
-
-    Ok((r, [x, y, z]))
-}
-
-/// Take and consuming to `token`.
-pub fn jump_to<'a>(token: &'a str) -> impl Fn(&'a str) -> IResult<&str, ()> {
-    use nom::combinator::map;
-    use nom::sequence::pair;
-
-    map(pair(take_until(token), tag(token)), |_| ())
-}
-
-#[test]
-fn test_take() {
-    let x = "xxbcc aa cc";
-    let (r, _) = jump_to("aa")(x).unwrap();
-    assert_eq!(r, " cc");
+    pub fn suitable_for_path_complete(line: &str) -> bool {
+        line.trim().starts_with("load")
+    }
 }

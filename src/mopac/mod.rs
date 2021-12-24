@@ -1,14 +1,9 @@
-// mod.rs
-// :PROPERTIES:
-// :header-args: :tangle src/mopac/mod.rs
-// :END:
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*mod.rs][mod.rs:1]]
+// [[file:../../adaptors.note::*mod.rs][mod.rs:1]]
 mod model;
 mod parse;
 
-use gosh_core::guts::prelude::*;
-use gosh_models::ModelProperties;
+use gosh_core::gut::prelude::*;
+use gosh_model::ModelProperties;
 
 use std::path::Path;
 

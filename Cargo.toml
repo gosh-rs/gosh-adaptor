@@ -1,19 +1,25 @@
-# cargo
-
-# [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*cargo][cargo:1]]
+# [[file:adaptors.note::b98eeb06][b98eeb06]]
 [package]
-name = "gosh-adaptors"
-version = "0.0.2"
+name = "gosh-adaptor"
+version = "0.0.6"
 edition = "2018"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
+description = "Adaptor for chemical model"
+homepage = "https://github.com/gosh-rs/gosh-adaptor"
+repository = "https://github.com/gosh-rs/gosh-adaptor"
+license = "MIT OR Apache-2.0"
+exclude = ["bin/*", "docs/*", "lib/*"]
 
 [dependencies]
-nom = "5"
-gosh-core = { git = "https://github.com/gosh-rs/gosh-core.git" }
-gosh-models = { git = "https://github.com/gosh-rs/gosh-models.git", features = ["adhoc"] }
-# gosh-models = {path = "../models", features = ["adhoc"]}
-# text-parser = { path = "../../gchemol-rs/parser" }
 structopt = "0.3"
+gosh-core = { version=">=0.0.2" }
+gosh-model = { version=">=0.0.9" }
+shlex = "1"
+dirs = "2"
+rustyline = {version = "9.1", features = ["with-fuzzy"]}
+rustyline-derive = "0.6"
+clap = {version="3.0.0-rc.7", features = ["derive"]}
 
-[dev-dependencies]
-# cargo:1 ends here
+[features]
+adhoc = [] # for adhoc hacking
+# b98eeb06 ends here
