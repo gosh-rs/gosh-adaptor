@@ -1,6 +1,6 @@
-// [[file:../../adaptors.note::*imports][imports:1]]
-use crate::parser::*;
-// imports:1 ends here
+// [[file:../../adaptors.note::3417889d][3417889d]]
+use gosh_core::text_parser::parsers::*;
+// 3417889d ends here
 
 // [[file:../../adaptors.note::*energy][energy:1]]
 fn get_total_energy(s: &str) -> IResult<&str, f64> {

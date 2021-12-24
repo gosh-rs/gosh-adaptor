@@ -1,6 +1,6 @@
-// [[file:../../adaptors.note::*imports][imports:1]]
-use crate::parser::*;
-// imports:1 ends here
+// [[file:../../adaptors.note::43309458][43309458]]
+use gosh_core::text_parser::parsers::*;
+// 43309458 ends here
 
 // [[file:../../adaptors.note::*energy][energy:1]]
 // Final energy =     -91.56438967 eV

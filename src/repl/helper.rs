@@ -1,13 +1,12 @@
-// [[file:../../adaptors.note::*imports][imports:1]]
+// [[file:../../adaptors.note::e0fe07d2][e0fe07d2]]
 use super::*;
+use crate::parser::Cmd;
 
 use rustyline::completion::{FilenameCompleter, Pair};
 use rustyline::error::ReadlineError;
 use rustyline::Context;
 use rustyline_derive::{Completer, Helper, Highlighter, Validator};
-// imports:1 ends here
 
-// [[file:../../adaptors.note::e0fe07d2][e0fe07d2]]
 #[derive(Helper, Highlighter, Validator)]
 pub struct MyHelper {
     completer: FilenameCompleter,
@@ -18,10 +17,10 @@ impl rustyline::completion::Completer for MyHelper {
     type Candidate = Pair;
 
     fn complete(&self, line: &str, pos: usize, ctx: &Context<'_>) -> Result<(usize, Vec<Pair>), ReadlineError> {
-        if Self::suitable_for_path_complete(line) {
+        if Cmd::suitable_for_path_complete(line) {
             self.completer.complete(line, pos, ctx)
         } else {
-            let commands = Self::get_subcommands();
+            let commands = Cmd::get_subcommands();
             let pairs = commands
                 .into_iter()
                 .filter_map(|x| {

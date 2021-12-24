@@ -1,11 +1,11 @@
-// [[file:../../adaptors.note::*imports][imports:1]]
+// [[file:../../adaptors.note::7a05223b][7a05223b]]
 use nom::character::complete::digit1;
 use nom::character::complete::line_ending;
 use nom::character::complete::{space0, space1};
 use nom::number::complete::double;
 
-use crate::parser::*;
-// imports:1 ends here
+use gosh_core::text_parser::parsers::*;
+// 7a05223b ends here
 
 // [[file:../../adaptors.note::*energy][energy:1]]
 use nom::bytes::complete::tag;
