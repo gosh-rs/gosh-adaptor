@@ -84,6 +84,7 @@ impl Interpreter {
             Ok(line) => {
                 let line = line.trim();
                 if !line.is_empty() {
+                    self.editor.add_history_entry(line);
                     self.continue_interpret_line(&line)
                 } else {
                     true
@@ -103,11 +104,11 @@ impl Interpreter {
         println!("Press Ctrl-D or enter \"quit\" or \"q\" to exit.");
         println!("");
 
-        // let _ = self.load_history();
+        let _ = self.load_history();
         while self.continue_read_eval_print() {
             trace!("excuted one loop");
         }
-        // self.save_history()?;
+        self.save_history()?;
 
         Ok(())
     }
@@ -116,7 +117,7 @@ impl Interpreter {
 
 // [[file:../adaptors.note::360871b3][360871b3]]
 fn get_history_file() -> PathBuf {
-    dirs::home_dir().unwrap_or_default().join(".gosh-parser.history")
+    dirs::home_dir().unwrap_or_default().join(".goshparser.history")
 }
 
 impl Interpreter {
@@ -155,6 +156,10 @@ impl Interpreter {
     }
 }
 // 05b99d70 ends here
+
+// [[file:../adaptors.note::*api][api:1]]
+
+// api:1 ends here
 
 // [[file:../adaptors.note::dc949951][dc949951]]
 use gut::cli_clap::*;
