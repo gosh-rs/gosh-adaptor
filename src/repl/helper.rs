@@ -17,10 +17,10 @@ impl rustyline::completion::Completer for MyHelper {
     type Candidate = Pair;
 
     fn complete(&self, line: &str, pos: usize, ctx: &Context<'_>) -> Result<(usize, Vec<Pair>), ReadlineError> {
-        if Cmd::suitable_for_path_complete(line) {
+        if Self::suitable_for_path_complete(line) {
             self.completer.complete(line, pos, ctx)
         } else {
-            let commands = Cmd::get_subcommands();
+            let commands = Self::get_subcommands();
             let pairs = commands
                 .into_iter()
                 .filter_map(|x| {
@@ -58,6 +58,15 @@ fn new_candidate(x: &str) -> Pair {
     Pair {
         display: x.into(),
         replacement: x.into(),
+    }
+}
+
+impl HelpfulCommand for MyHelper {
+    fn get_subcommands() -> Vec<String> {
+        Cmd::get_subcommands()
+    }
+    fn suitable_for_path_complete(line: &str) -> bool {
+        Cmd::suitable_for_path_complete(line)
     }
 }
 // e0fe07d2 ends here
