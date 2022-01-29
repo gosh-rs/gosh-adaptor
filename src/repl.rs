@@ -193,11 +193,8 @@ impl<A: Actionable> Interpreter<A> {
 // f3bcb018 ends here
 
 // [[file:../adaptors.note::dc949951][dc949951]]
-use gut::cli_clap::*;
+use gut::cli::*;
 use std::path::PathBuf;
-
-use clap::IntoApp;
-use clap::Parser;
 
 #[derive(Parser, Debug)]
 struct GoshParser {

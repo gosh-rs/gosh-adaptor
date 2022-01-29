@@ -10,6 +10,7 @@ mod repl;
 mod siesta;
 mod skim;
 mod vasp;
+//mod xtb;
 
 // trait
 
@@ -40,7 +41,10 @@ pub trait ModelAdaptor {
 
 use gosh_core::*;
 
-// pub
+use gchemol::prelude::*;
+use gchemol::{Atom, Molecule};
+
+// exports
 // #+name: 111a01d3
 
 pub use crate::gulp::Gulp;

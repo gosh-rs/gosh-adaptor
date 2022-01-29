@@ -2,7 +2,7 @@
 [package]
 name = "gosh-adaptor"
 version = "0.0.6"
-edition = "2018"
+edition = "2021"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 description = "Adaptor for chemical model"
 homepage = "https://github.com/gosh-rs/gosh-adaptor"
@@ -12,13 +12,15 @@ exclude = ["bin/*", "docs/*", "lib/*"]
 
 [dependencies]
 structopt = "0.3"
-gosh-core = { version=">=0.0.2" }
-gosh-model = { version=">=0.0.9" }
 shlex = "1"
 dirs = "2"
 rustyline = {version = "9.1", features = ["with-fuzzy"]}
 rustyline-derive = "0.6"
-clap = {version="3.0.0-rc.7", features = ["derive"]}
+clap = {version="3", features = ["derive"]}
+###########
+gosh-core = { version=">=0.0.2" }
+gosh-model = { version=">=0.0.9" }
+# xtb-model = "0.0.6"
 
 [features]
 adhoc = [] # for adhoc hacking

@@ -1,7 +1,7 @@
-// [[file:../adaptors.note::*main.rs][main.rs:1]]
+// [[file:../adaptors.note::9afa51a4][9afa51a4]]
 use gosh_core::*;
 
-use gut::cli::*;
+use gut1::cli::*;
 use gut::fs::*;
 use gut::prelude::*;
 use structopt::*;
@@ -86,4 +86,4 @@ fn parse<M: ModelAdaptor>(app: M, all: bool, outfile: &Path) -> Result<()> {
 
     Ok(())
 }
-// main.rs:1 ends here
+// 9afa51a4 ends here
