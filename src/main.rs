@@ -1,10 +1,9 @@
 // [[file:../adaptors.note::9afa51a4][9afa51a4]]
 use gosh_core::*;
 
-use gut1::cli::*;
+use gut::cli::*;
 use gut::fs::*;
 use gut::prelude::*;
-use structopt::*;
 
 use gosh_adaptor::*;
 
@@ -22,7 +21,7 @@ struct Cli {
     outfile: PathBuf,
 
     /// Parse all result entries found in the output
-    #[structopt(short = "a", long = "all")]
+    #[structopt(short = 'a', long = "all")]
     all: bool,
 }
 
