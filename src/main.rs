@@ -17,7 +17,7 @@ struct Cli {
     chemical_model: String,
 
     /// calculated output file
-    #[structopt(parse(from_os_str))]
+    #[structopt()]
     outfile: PathBuf,
 
     /// Parse all result entries found in the output
@@ -26,7 +26,7 @@ struct Cli {
 }
 
 fn main() -> Result<()> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
     args.verbose.setup_logger();
 
     let outfile = &args.outfile;

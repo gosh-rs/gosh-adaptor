@@ -15,7 +15,7 @@ shlex = "1"
 dirs = "2"
 rustyline = {version = "9.1", features = ["with-fuzzy"]}
 rustyline-derive = "0.6"
-clap = {version="3", features = ["derive"]}
+clap = {version="4", features = ["derive"]}
 ###########
 gosh-core = { version="0.1.0" }
 gosh-model = { version="0.1.0" }

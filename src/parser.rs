@@ -1,13 +1,9 @@
-// imports
-// #+name: 70d3dbdb
-
+// [[file:../adaptors.note::70d3dbdb][70d3dbdb]]
 use super::*;
+// 70d3dbdb ends here
 
-// cmd
-// #+name: 724d9a95
-
-use clap::IntoApp;
-use clap::Parser;
+// [[file:../adaptors.note::724d9a95][724d9a95]]
+use gut::cli::*;
 
 #[derive(Parser, Debug)]
 pub enum Cmd {
@@ -73,10 +69,9 @@ pub enum Cmd {
         pipe: Option<String>,
     },
 }
+// 724d9a95 ends here
 
-// action
-// #+name: a252f98f
-
+// [[file:../adaptors.note::a252f98f][a252f98f]]
 use crate::skim::Glance;
 
 #[derive(Debug, Default, Clone)]
@@ -112,7 +107,7 @@ impl repl::Actionable for Action {
         match cmd {
             Cmd::Quit {} => return Ok(true),
             Cmd::Help {} => {
-                let mut app = Cmd::into_app();
+                let mut app = Cmd::command();
                 app.print_help();
                 println!("");
             }
@@ -172,15 +167,12 @@ impl repl::Actionable for Action {
         Ok(false)
     }
 }
+// a252f98f ends here
 
-// completion
-// 见 [[id:9da0335f-054e-45bc-aba0-2425017fda2a][repl/helper.rs]]
-
-// #+name: f8cc322b
-
+// [[file:../adaptors.note::f8cc322b][f8cc322b]]
 impl repl::HelpfulCommand for Cmd {
     fn get_subcommands() -> Vec<String> {
-        let app = Cmd::into_app();
+        let app = Cmd::command();
         app.get_subcommands().map(|s| s.get_name().into()).collect()
     }
 
@@ -188,3 +180,4 @@ impl repl::HelpfulCommand for Cmd {
         line.trim().starts_with("load")
     }
 }
+// f8cc322b ends here
