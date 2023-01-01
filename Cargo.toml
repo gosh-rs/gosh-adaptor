@@ -19,6 +19,7 @@ clap = {version="4", features = ["derive"]}
 ###########
 gosh-core = { version="0.1.0" }
 gosh-model = { version="0.1.0" }
+text_parser = { version = "0.3.0", package = "gchemol-parser" }
 
 [features]
 adhoc = [] # for adhoc hacking
