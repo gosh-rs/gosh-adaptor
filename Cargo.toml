@@ -1,7 +1,7 @@
 # [[file:adaptors.note::b98eeb06][b98eeb06]]
 [package]
 name = "gosh-adaptor"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 description = "Adaptor for chemical model"
@@ -17,8 +17,8 @@ rustyline = {version = "9.1", features = ["with-fuzzy"]}
 rustyline-derive = "0.6"
 clap = {version="4", features = ["derive"]}
 ###########
-gosh-core = { version="0.1.0" }
-gosh-model = { version="0.1.0" }
+gosh-core = { version="0.2.0" }
+gosh-model = { version="0.2.0" }
 text_parser = { version = "0.3.0", package = "gchemol-parser" }
 
 [features]
