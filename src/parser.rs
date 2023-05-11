@@ -6,6 +6,7 @@ use super::*;
 use gut::cli::*;
 
 #[derive(Parser, Debug)]
+#[clap(disable_help_subcommand = true)]
 pub enum Cmd {
     /// Quit shell.
     #[clap(name = "quit", alias = "q", alias = "exit")]
@@ -89,17 +90,8 @@ impl Action {
     }
 }
 
-impl repl::Actionable for Action {
+impl gosh_repl::Actionable for Action {
     type Command = Cmd;
-
-    fn try_parse_from<I, T>(iter: I) -> Result<Self::Command>
-    where
-        I: IntoIterator<Item = T>,
-        T: Into<std::ffi::OsString> + Clone,
-    {
-        let r = Cmd::try_parse_from(iter)?;
-        Ok(r)
-    }
 
     /// Take action on gosh-parser commands. Return Ok(true) will exit shell
     /// loop.
@@ -168,16 +160,3 @@ impl repl::Actionable for Action {
     }
 }
 // a252f98f ends here
-
-// [[file:../adaptors.note::f8cc322b][f8cc322b]]
-impl repl::HelpfulCommand for Cmd {
-    fn get_subcommands() -> Vec<String> {
-        let app = Cmd::command();
-        app.get_subcommands().map(|s| s.get_name().into()).collect()
-    }
-
-    fn suitable_for_path_complete(line: &str) -> bool {
-        line.trim().starts_with("load")
-    }
-}
-// f8cc322b ends here
