@@ -9,7 +9,7 @@ use super::*;
 
 // #+name: a7c4eb05
 
-use text_parser::parsers::*;
+use ::text_parser::parsers::*;
 
 #[derive(Debug, Clone)]
 struct Selection {
@@ -93,7 +93,7 @@ fn test_line_spec() -> Result<()> {
 // api/core
 // #+name: e9b2e6d8
 
-use text_parser::TextViewer;
+use ::text_parser::TextViewer;
 
 #[derive(Debug, Clone)]
 pub struct Glance {

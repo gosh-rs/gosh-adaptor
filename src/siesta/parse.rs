@@ -4,7 +4,7 @@ use nom::character::complete::line_ending;
 use nom::character::complete::{space0, space1};
 use nom::number::complete::double;
 
-use gosh_core::text_parser::parsers::*;
+use text_parser::parsers::*;
 // 7a05223b ends here
 
 // [[file:../../adaptors.note::*energy][energy:1]]

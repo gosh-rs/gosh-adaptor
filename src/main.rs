@@ -1,10 +1,9 @@
-// [[file:../adaptors.note::*main.rs][main.rs:1]]
+// [[file:../adaptors.note::9afa51a4][9afa51a4]]
 use gosh_core::*;
 
 use gut::cli::*;
 use gut::fs::*;
 use gut::prelude::*;
-use structopt::*;
 
 use gosh_adaptor::*;
 
@@ -18,16 +17,16 @@ struct Cli {
     chemical_model: String,
 
     /// calculated output file
-    #[structopt(parse(from_os_str))]
+    #[structopt()]
     outfile: PathBuf,
 
     /// Parse all result entries found in the output
-    #[structopt(short = "a", long = "all")]
+    #[structopt(short = 'a', long = "all")]
     all: bool,
 }
 
 fn main() -> Result<()> {
-    let args = Cli::from_args();
+    let args = Cli::parse();
     args.verbose.setup_logger();
 
     let outfile = &args.outfile;
@@ -86,4 +85,4 @@ fn parse<M: ModelAdaptor>(app: M, all: bool, outfile: &Path) -> Result<()> {
 
     Ok(())
 }
-// main.rs:1 ends here
+// 9afa51a4 ends here

@@ -12,6 +12,7 @@ use gosh_core::gut::prelude::*;
 use gosh_model::ModelProperties;
 
 // model
+// #+name: 0d8ac726
 
 // Hartree to eV
 const HARTREE: f64 = 27.211386024367243;
@@ -33,7 +34,7 @@ pub(crate) fn parse_gaussian_fchk<P: AsRef<Path>>(fchkfile: P) -> Result<ModelPr
         line.len() >= 50 && line.chars().next().unwrap().is_uppercase()
     }
 
-    let r = TextReader::from_path(fchkfile)?;
+    let r = TextReader::try_from_path(fchkfile.as_ref())?;
     for bunch in r.partitions_preceded(is_data_label) {
         let mut data = bunch.splitn(2, "\n");
         let label = data.next().expect("chk label");

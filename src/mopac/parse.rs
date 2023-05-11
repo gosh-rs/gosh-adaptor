@@ -63,7 +63,7 @@ fn test_mopac_dipole() {
 }
 // 8c9b7cb0 ends here
 
-// [[file:../../adaptors.note::*structure and forces][structure and forces:1]]
+// [[file:../../adaptors.note::1ca62637][1ca62637]]
 // PARAMETER     ATOM    TYPE            VALUE       GRADIENT
 //     1          1  C    CARTESIAN X    -1.644300   -55.598091  KCAL/ANGSTROM
 //     2          1  C    CARTESIAN Y    -0.817800    35.571574  KCAL/ANGSTROM
@@ -174,18 +174,20 @@ fn get_mopac_results(s: &str) -> IResult<&str, ModelProperties> {
             ]);
             // structure and gradients
             let atoms = data.iter().map(|(s, p, _)| (*s, *p));
+            let natoms = atoms.len();
             let mol = Molecule::from_atoms(atoms);
             mp.set_molecule(mol);
             // set forces
             let forces: Vec<_> = data.iter().map(|(_, _, f)| {
                 [-f[0] * KCAL_MOL, -f[1] * KCAL_MOL, -f[2] * KCAL_MOL]
             }).collect();
+            assert_eq!(forces.len(), natoms, "found invalid data: {s:?}");
             mp.set_forces(forces);
             mp
         })
     )
 }
-// structure and forces:1 ends here
+// 1ca62637 ends here
 
 // [[file:../../adaptors.note::*pub][pub:1]]
 pub(crate) fn get_results(s: &str) -> IResult<&str, Vec<ModelProperties>> {
