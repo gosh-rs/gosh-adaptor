@@ -9,7 +9,7 @@ mod parse;
 
 // [[file:../adaptors.note::343b6bbc][343b6bbc]]
 /// VASP model adaptor
-pub struct Vasp;
+pub struct Vasp();
 // 343b6bbc ends here
 
 // [[file:../adaptors.note::43388644][43388644]]

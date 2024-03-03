@@ -1,160 +1,214 @@
-// [[file:../../adaptors.note::3417889d][3417889d]]
-use gosh_core::text_parser::parsers::*;
-// 3417889d ends here
+// [[file:../../adaptors.note::25511eb1][25511eb1]]
+use crate::common::*;
 
-// [[file:../../adaptors.note::*energy][energy:1]]
-fn get_total_energy(s: &str) -> IResult<&str, f64> {
-    let mut token = "\n  free  energy   TOTEN  =";
-    let mut jump = jump_to(token);
-    let mut tag_ev = tag("eV");
-    do_parse!(
-        s,
-        jump >> space0 >> e: double >> space0 >> tag_ev >> eol >> (e)
-    )
+use grep_reader::GrepReader;
+use std::path::Path;
+
+use crate::parsers::*;
+// 25511eb1 ends here
+
+// [[file:../../adaptors.note::c35d320f][c35d320f]]
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Frame {
+    pub energy: f64,
+    pub positions: Vec<[f64; 3]>,
+    pub forces: Vec<[f64; 3]>,
 }
+// c35d320f ends here
 
-#[test]
-fn test_vasp_energy() {
-    let txt = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM (eV)
-  ---------------------------------------------------
-  free  energy   TOTEN  =      -536.628381 eV
+// [[file:../../adaptors.note::50721456][50721456]]
+fn number_of_ions(input: &mut &str) -> PResult<usize> {
+    use winnow::ascii::{digit1, line_ending, space0};
 
-  energy  without entropy=     -536.775651  energy(sigma->0) =     -536.677471
-";
-    let (_, en) = get_total_energy(txt).unwrap();
-    // assert!(r == "");
-    assert_eq!(-536.628381, en);
+    let label = "number of ions     NIONS =";
+    let skip = jump_to(label);
+    let nions = ws(digit1).try_map(|s: &str| s.parse::<usize>());
+    preceded(skip, nions).parse_next(input)
 }
-// energy:1 ends here
+// 50721456 ends here
 
-// [[file:../../adaptors.note::*forces][forces:1]]
-fn get_positions_and_forces(s: &str) -> IResult<&str, Vec<([f64; 3], [f64; 3])>> {
-    let mut token = " POSITION                                       TOTAL-FORCE (eV/Angst)";
-    let mut jump = jump_to(token);
-    let mut read_data = many1(position_and_force);
-    do_parse!(
-        s,
-        jump >> eol >>     // head line
-        read_line   >>     // ignroe one line
-        data: read_data >> // current coordinates and forces
-        (data)
-    )
-}
+// [[file:../../adaptors.note::d5a293f0][d5a293f0]]
+//   free energy    TOTEN  =       -20.54559168 eV
+fn energy_toten(input: &mut &str) -> PResult<f64> {
+    use winnow::ascii::{line_ending, space0};
 
-fn position_and_force(s: &str) -> IResult<&str, ([f64; 3], [f64; 3])> {
-    do_parse!(
-        s,
-        space0 >> p: xyz_array >>        // position
-        space1 >> f: xyz_array >> eol >> // force
-        ((p, f))
-    )
-}
-
-#[test]
-fn test_vasp_forces() {
-    let txt = " POSITION                                       TOTAL-FORCE (eV/Angst)
- -----------------------------------------------------------------------------------
-      3.13915      4.47145      7.05899        -0.051556     -0.016880     -0.033586
-      5.48130      2.80880      7.05969         0.000184     -0.045212     -0.032849
-      5.83773      5.79740      6.84087        -0.577800     -0.751742     -0.808742
-      6.97326      7.41268      7.95898         0.339121      0.480393     -2.202270
-      1.15573      1.63445     -0.00000        -0.012611      0.019147     -0.003608
-      1.15573      4.08614     -0.00000         0.007421      0.011830      0.002581
-      1.15573      6.53782     -0.00000         0.002656     -0.026602      0.000487
-      1.15573      8.98950     -0.00000         0.001754     -0.000284     -0.051374
-      3.46720      2.45168     -0.00000         0.007068      0.007910     -0.002521
-      3.46720      4.90336     -0.00000         0.010139      0.010535      0.040481
-      3.46720      7.35505     -0.00000         0.039958     -0.044033      0.015392
- -----------------------------------------------------------------------------------
-    total drift:                               -0.004104      0.000869     -0.010144
-";
-    let (_, forces) = get_positions_and_forces(txt).unwrap();
-    assert_eq!(11, forces.len());
-}
-// forces:1 ends here
-
-// [[file:../../adaptors.note::*model][model:1]]
-use gosh_core::gchemol::Molecule;
-use gosh_core::gut;
-use gosh_model::ModelProperties;
-
-use gut::fs::*;
-use gut::prelude::*;
-
-fn get_results(s: &str) -> IResult<&str, ModelProperties> {
-    let mut energy = context("Energy", get_total_energy);
-    let mut positions_and_forces = context("Positions and forces", get_positions_and_forces);
-    do_parse!(
-        s,
-        data: get_positions_and_forces >> // positions and forces
-        energy: energy                 >> // energy
-        ({
-            let mut mp = ModelProperties::default();
-            mp.set_energy(energy);
-            let (positions, forces): (Vec<[f64; 3]>, Vec<[f64; 3]>) = data.into_iter().unzip();
-            mp.set_forces(forces);
-            // do not bother to parse element data
-            let atoms = positions.into_iter().map(|p| ("C", p));
-            let mol = Molecule::from_atoms(atoms);
-            mp.set_molecule(mol);
-            mp
-        })
-    )
-}
-
-/// Get all results for multiple structures.
-pub(crate) fn parse_vasp_outcar<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProperties>> {
-    use gosh_core::gchemol::prelude::*;
-
-    let s = read_file(&fout)?;
-    let (_, mut mps) = many1(get_results)(&s).nom_trace_err()?;
-
-    // FIXME: still looks hacky
-    // recover element data from CONTCAR
-    let contcar = fout.as_ref().with_file_name("CONTCAR");
-    if let Ok(parent_mol) = Molecule::from_file(contcar).context("read molecule from CONTCAR") {
-        for mp in &mut mps {
-            let positions = mp
-                .get_molecule()
-                .and_then(|mol| Some(mol.positions()))
-                .expect("vasp no positions");
-            let mut mol = parent_mol.clone();
-            mol.set_positions(positions);
-            mp.set_molecule(mol);
-        }
-    } else {
-        warn!("CONTCAR not found, molecule data could be incomplete!");
+    let energy = seq! {
+        _: "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM",
+        _: rest_line,
+        _: "  ---------------",
+        _: rest_line,
+        _: "  free  energy   TOTEN  =",
+        _: space0,
+           double,
+        _: space0,
+        _: "eV",
+        _: line_ending,
+        // ignore other two lines
+        _: read_line,
+        _: read_line
     }
-    Ok(mps)
+    .context(label("energy TOTEN"))
+    .parse_next(input)?;
+    Ok(energy.0)
 }
-// model:1 ends here
 
-// [[file:../../adaptors.note::*test][test:1]]
 #[test]
-fn test_parse_vasp_outcar() {
-    // vasp 5.3.5, single point
+fn outcar_energy() -> PResult<()> {
+    let s = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM (eV)
+  ---------------------------------------------------
+  free  energy   TOTEN  =       -20.028155 eV
+
+  energy  without entropy=      -20.028155  energy(sigma->0) =      -20.028155
+";
+    let (_, v) = energy_toten.parse_peek(s)?;
+    assert_eq!(v, -20.028155);
+
+    Ok(())
+}
+// d5a293f0 ends here
+
+// [[file:../../adaptors.note::b5eb3fb1][b5eb3fb1]]
+fn position_and_force(input: &mut &str) -> PResult<[f64; 6]> {
+    use winnow::ascii::space1;
+
+    repeat(6, preceded(space1, double))
+        .map(|x: Vec<f64>| x.try_into().unwrap())
+        .parse_next(input)
+}
+
+fn positions_and_forces(input: &mut &str) -> PResult<Vec<[f64; 6]>> {
+    use winnow::ascii::line_ending;
+
+    let values = seq! {
+        _: preceded(" POSITION ", rest_line),
+        _: preceded(" -------", rest_line),
+           repeat(1.., terminated(position_and_force, line_ending)),
+        _: preceded(" -------", rest_line),
+    }
+    .context(label("OUTCAR positions and forces"))
+    .parse_next(input)?;
+    Ok(values.0)
+}
+
+#[test]
+fn outcar_positons_and_forces() -> PResult<()> {
+    let s = " POSITION                                       TOTAL-FORCE (eV/Angst)
+ -----------------------------------------------------------------------------------
+      0.00000      0.00000      0.00000         0.000000      0.000000      0.000000
+      0.92500      0.92500      0.92500         0.000000      0.000000      0.000000
+ -----------------------------------------------------------------------------------
+    total drift:                                0.000000      0.000000      0.000000
+";
+
+    let (_, v) = positions_and_forces.parse_peek(s)?;
+    assert_eq!(v.len(), 2);
+
+    Ok(())
+}
+// b5eb3fb1 ends here
+
+// [[file:../../adaptors.note::cf96d53e][cf96d53e]]
+// For old VASP below 5.2.11
+fn parse_frames_old(input: &mut &str) -> PResult<Vec<Frame>> {
+    let frame = (positions_and_forces, energy_toten);
+
+    let frames_data: Vec<_> = repeat(1.., frame).context(label("OUTCAR frames")).parse_next(input)?;
+    let mut frames = vec![];
+    for (p_and_f, energy) in frames_data {
+        let mut frame = Frame::default();
+        frame.energy = energy;
+        frame.positions = p_and_f.iter().map(|x| x[..3].try_into().unwrap()).collect();
+        frame.forces = p_and_f.iter().map(|x| x[3..6].try_into().unwrap()).collect();
+        frames.push(frame);
+    }
+    Ok(frames)
+}
+
+// For VASP above 5.2.11
+fn parse_frames(input: &mut &str) -> PResult<Vec<Frame>> {
+    let frame = (energy_toten, positions_and_forces);
+
+    let frames_data: Vec<_> = repeat(1.., frame).context(label("OUTCAR frames")).parse_next(input)?;
+    let mut frames = vec![];
+    for (energy, p_and_f) in frames_data {
+        let mut frame = Frame::default();
+        frame.energy = energy;
+        frame.positions = p_and_f.iter().map(|x| x[0..3].try_into().unwrap()).collect();
+        frame.forces = p_and_f.iter().map(|x| x[3..6].try_into().unwrap()).collect();
+        frames.push(frame);
+    }
+    Ok(frames)
+}
+
+/// Parse `Frame` data from OUTCAR in `f`
+pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
+    let n_ions_part_pattern = "number of ions     NIONS =";
+    let energy_part_pattern = "FREE ENERGIE OF THE ION-ELECTRON SYSTEM";
+    let forces_part_pattern = "POSITION                                       TOTAL-FORCE";
+
+    let mut reader = GrepReader::try_from_path(f.as_ref())?;
+    let pattern = format!("{n_ions_part_pattern}|{energy_part_pattern}|{forces_part_pattern}");
+    let n = reader.mark(&pattern, None)?;
+
+    ensure!(n >= 2);
+    let mut s = String::new();
+    reader.goto_marker(0);
+    reader.read_lines(1, &mut s)?;
+    let natoms: usize = number_of_ions.parse(&mut &s[..]).map_err(|e| parse_error(e, &s))?;
+    s.clear();
+
+    reader.goto_next_marker();
+    reader.read_lines(1, &mut s)?;
+    let mut collect_frames = || {
+        let last_line = s.lines().last()?;
+        if last_line.contains(energy_part_pattern) {
+            reader.read_lines(4, &mut s).ok()?;
+            Some(1)
+        } else if last_line.contains(forces_part_pattern) {
+            reader.read_lines(natoms + 2, &mut s).ok()?;
+            Some(2)
+        } else {
+            reader.goto_next_marker().ok()?;
+            reader.read_lines(1, &mut s).ok()?;
+            Some(0)
+        }
+    };
+    // collect all frames
+    while let Some(_) = collect_frames() {}
+    // println!("{s}");
+    let mut parse_frames = if s.starts_with(" POSITION") {
+        parse_frames_old
+    } else {
+        parse_frames
+    };
+    let frames = parse_frames.parse(&mut &s[..]).map_err(|e| parse_error(e, &s[..]))?;
+
+    Ok(frames)
+}
+// cf96d53e ends here
+
+// [[file:../../adaptors.note::600fda9b][600fda9b]]
+#[test]
+fn test_vasp() -> Result<()> {
     let f = "./tests/files/vasp/OUTCAR-5.3.5";
-    let mps = parse_vasp_outcar(f).unwrap();
-    assert_eq!(mps.len(), 1);
-}
+    let frames = parse_from(f.as_ref())?;
+    assert_eq!(frames.len(), 1);
 
-// FIXME: make old vasp results parsing work
-#[test]
-#[ignore]
-fn test_parse_vasp_outcar_old() {
     // test files from Jmol
     let f = "./tests/files/vasp/OUTCAR-5.2";
-    let mps = parse_vasp_outcar(f).unwrap();
-    assert_eq!(mps.len(), 1);
-
-    // test files from Jmol
-    let f = "./tests/files/vasp/AlH3_Vasp5.dat";
-    let mps = parse_vasp_outcar(f).unwrap();
-    assert_eq!(mps.len(), 7);
+    let frames = parse_from(f.as_ref())?;
+    assert_eq!(frames.len(), 1);
 
     // test files from Jmol
     let f = "./tests/files/vasp/OUTCAR_diamond.dat";
-    let mps = parse_vasp_outcar(f).unwrap();
-    assert_eq!(mps.len(), 1);
+    let frames = parse_from(f.as_ref()).unwrap();
+    assert_eq!(frames.len(), 1);
+
+    // test files from Jmol
+    let f = "tests/files/vasp/AlH3_Vasp5.dat";
+    let frames = parse_from(f.as_ref())?;
+    assert_eq!(frames.len(), 7);
+
+    Ok(())
 }
-// test:1 ends here
+// 600fda9b ends here
