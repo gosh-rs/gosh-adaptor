@@ -19,12 +19,14 @@ mod skim;
 
 mod vasp;
 // for winnow
+mod parquet;
 mod parsers;
 
 //mod xtb;
 
 mod common {
     pub use gosh_core::gut::prelude::*;
+    pub use std::path::{Path, PathBuf};
 }
 
 
@@ -37,19 +39,6 @@ use gosh_core::*;
 use gchemol::prelude::*;
 use gchemol::{Atom, Molecule};
 
-
-
-// ** exports
-// #+name: 111a01d3
-
-pub use crate::gulp::Gulp;
-pub use crate::mopac::Mopac;
-pub use crate::siesta::Siesta;
-pub use crate::vasp::Vasp;
-pub use crate::gaussian::Gaussian;
-pub use crate::null::Null;
-
-pub use crate::repl::repl_enter_main;
 
 
 // ** pub/trait
@@ -76,3 +65,20 @@ pub trait ModelAdaptor {
     /// - a list of ModelProperties
     fn parse_all<P: AsRef<Path>>(&self, _outfile: P) -> Result<Vec<ModelProperties>>;
 }
+
+
+
+// ** exports
+// #+name: 111a01d3
+
+pub use crate::gaussian::Gaussian;
+pub use crate::gulp::Gulp;
+pub use crate::mopac::Mopac;
+pub use crate::null::Null;
+pub use crate::siesta::Siesta;
+pub use crate::vasp::Vasp;
+
+pub use crate::repl::repl_enter_main;
+
+/// Write parsed results in parquet format.
+pub use crate::parquet::ParquetWrite;
