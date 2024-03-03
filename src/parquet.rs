@@ -8,16 +8,25 @@ use gosh_dataset::SimpleParquetFileWriter;
 #[derive(Debug, Serialize, Clone, Default)]
 struct Parsed {
     energy: Option<f64>,
-    positions: Option<Vec<[f64; 3]>>,
-    forces: Option<Vec<[f64; 3]>>,
+    // NOTE: do not [f64; 3], for easy to read out using polars
+    positions: Option<Vec<Vec<f64>>>,
+    forces: Option<Vec<Vec<f64>>>,
 }
 
 fn to_parsed(mp: ModelProperties) -> Parsed {
     Parsed {
         energy: mp.get_energy(),
-        forces: mp.get_forces().cloned(),
+        positions: mp
+            .get_molecule()
+            .map(|mol| mol.positions().collect_vec())
+            .map(to_parquet_vector),
+        forces: mp.get_forces().cloned().map(to_parquet_vector),
         ..Default::default()
     }
+}
+
+fn to_parquet_vector(nested_array: Vec<[f64; 3]>) -> Vec<Vec<f64>> {
+    nested_array.iter().map(|x| x.to_vec()).collect()
 }
 // 819fc289 ends here
 
