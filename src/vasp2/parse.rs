@@ -2,6 +2,8 @@
 use crate::common::*;
 use grep_reader::GrepReader;
 use std::path::Path;
+
+use crate::parsers::*;
 // 25511eb1 ends here
 
 // [[file:../../adaptors.note::c35d320f][c35d320f]]
@@ -12,132 +14,6 @@ struct Frame {
     forces: Vec<[f64; 3]>,
 }
 // c35d320f ends here
-
-// [[file:../../adaptors.note::438c735a][438c735a]]
-use winnow::combinator::seq;
-use winnow::combinator::{delimited, preceded, repeat, separated, terminated};
-use winnow::error::StrContext;
-use winnow::prelude::*;
-
-type Stream<'i> = &'i str;
-
-fn label(s: &'static str) -> StrContext {
-    StrContext::Label(s)
-}
-
-use extra::*;
-
-fn parse_error(e: winnow::error::ParseError<&str, winnow::error::ContextError>, input: &str) -> Error {
-    anyhow!("found parse error:\n{:}\ninput={input:?}", e.to_string())
-}
-// 438c735a ends here
-
-// [[file:../../adaptors.note::828d3249][828d3249]]
-mod extra {
-    use super::label;
-    use winnow::combinator::delimited;
-    use winnow::combinator::terminated;
-    use winnow::error::ParserError;
-    use winnow::prelude::*;
-    use winnow::stream::Stream;
-    use winnow::Parser;
-
-    /// Parse a f64 float number
-    pub fn double(input: &mut &str) -> PResult<f64> {
-        use winnow::ascii::float;
-        float(input)
-    }
-
-    /// Read a new line including eol (\n) or consume the rest if there is no eol
-    /// char.
-    pub fn read_line<'a>(s: &mut &'a str) -> PResult<&'a str> {
-        use winnow::ascii::line_ending;
-        use winnow::ascii::till_line_ending;
-        use winnow::combinator::opt;
-        use winnow::combinator::rest;
-
-        // use winnow::combinator::recognize;
-        // if there is no newline in `s`, take the whole str
-        let o = (till_line_ending, opt(line_ending)).recognize().parse_next(s)?;
-        Ok(o)
-    }
-
-    /// Take the rest line. The line ending is not included.
-    pub fn rest_line<'a>(input: &mut &'a str) -> PResult<&'a str> {
-        use winnow::ascii::{line_ending, till_line_ending};
-        terminated(till_line_ending, line_ending)
-            .context(label("rest line"))
-            .parse_next(input)
-    }
-
-    /// Take and consuming to `literal`.
-    pub fn jump_to<'a>(literal: &str) -> impl FnMut(&mut &str) -> PResult<()> + '_ {
-        use winnow::token::take_until;
-        move |input: &mut &str| {
-            let _: (&str, &str) = (take_until(1.., literal), literal)
-                .context(label("jump_to"))
-                .parse_next(input)?;
-            Ok(())
-        }
-    }
-
-    /// A combinator that takes a parser `inner` and produces a parser
-    /// that also consumes both leading and trailing whitespace, returning
-    /// the output of `inner`.
-    pub fn ws<'a, ParseInner, Output, Error>(inner: ParseInner) -> impl Parser<&'a str, Output, Error>
-    where
-        ParseInner: Parser<&'a str, Output, Error>,
-        Error: ParserError<&'a str>,
-    {
-        use winnow::ascii::{multispace0, space0};
-        delimited(space0, inner, multispace0)
-    }
-
-    #[test]
-    fn test_ws() -> PResult<()> {
-        use winnow::ascii::{digit1, line_ending, space0};
-
-        let s = " 123 ";
-        let (_, x) = ws(digit1).parse_peek(s)?;
-        assert_eq!(x, "123");
-
-        let s = "123 ";
-        let (_, x) = ws(digit1).parse_peek(s)?;
-        assert_eq!(x, "123");
-
-        let s = "123\n";
-        let (_, x) = ws(digit1).parse_peek(s)?;
-        assert_eq!(x, "123");
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_jump_to() {
-        let x = "xxbcc aa cc";
-        let (r, _) = jump_to("aa").parse_peek(x).unwrap();
-        assert_eq!(r, " cc");
-    }
-
-    #[test]
-    fn test_read_line() {
-        let txt = "first line\nsecond line\r\nthird line\n";
-        let (rest, line) = read_line.parse_peek(txt).unwrap();
-        assert_eq!(line, "first line\n");
-        let (rest, line) = read_line.parse_peek(rest).unwrap();
-        assert_eq!(line, "second line\r\n");
-        let (rest, line) = read_line.parse_peek(rest).unwrap();
-        assert_eq!(line, "third line\n");
-        assert_eq!(rest, "");
-
-        // when there is no newline
-        let txt = "no newline at the end";
-        let (rest, line) = read_line.parse_peek(txt).unwrap();
-        assert_eq!(line, txt);
-        assert_eq!(rest, "");
-    }
-}
-// 828d3249 ends here
 
 // [[file:../../adaptors.note::50721456][50721456]]
 fn number_of_ions(input: &mut &str) -> PResult<usize> {
@@ -308,17 +184,30 @@ pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
 
     Ok(frames)
 }
+// cf96d53e ends here
 
+// [[file:../../adaptors.note::600fda9b][600fda9b]]
 #[test]
 fn test_vasp() -> Result<()> {
-    let path = "./tests/files/vasp/OUTCAR-5.3.5";
-    let frames = parse_from(path.as_ref())?;
+    let f = "./tests/files/vasp/OUTCAR-5.3.5";
+    let frames = parse_from(f.as_ref())?;
     assert_eq!(frames.len(), 1);
 
-    let path = "tests/files/vasp/AlH3_Vasp5.dat";
-    let frames = parse_from(path.as_ref())?;
+    // test files from Jmol
+    let f = "./tests/files/vasp/OUTCAR-5.2";
+    let frames = parse_from(f.as_ref())?;
+    assert_eq!(frames.len(), 1);
+
+    // test files from Jmol
+    let f = "./tests/files/vasp/OUTCAR_diamond.dat";
+    let frames = parse_from(f.as_ref()).unwrap();
+    assert_eq!(frames.len(), 1);
+
+    // test files from Jmol
+    let f = "tests/files/vasp/AlH3_Vasp5.dat";
+    let frames = parse_from(f.as_ref())?;
     assert_eq!(frames.len(), 7);
 
     Ok(())
 }
-// cf96d53e ends here
+// 600fda9b ends here

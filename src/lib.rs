@@ -19,6 +19,8 @@ mod skim;
 
 // FIXME: remove
 mod vasp;
+// for winnow
+mod parsers;
 
 mod vasp2;
 
