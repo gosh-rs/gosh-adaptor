@@ -181,9 +181,24 @@ fn outcar_atom_types() -> Result<()> {
 }
 // a5341d1a ends here
 
-// [[file:../../adaptors.note::*stress][stress:1]]
+// [[file:../../adaptors.note::cfcdcec2][cfcdcec2]]
+pub(self) fn stress<'a>(input: &mut &'a str) -> PResult<[f64; 6]> {
+    let x = seq! {
+        _: "  FORCE on cell =-STRESS in cart.", _: rest_line,
+        _: jump_to("in kB"),
+        //   in kB      -0.65036    -0.79073    -0.79508    -0.01450     0.00000     0.00000
+        stress_values,
+    }
+    .context(label("OUTCAR stress"))
+    .parse_next(input)?;
+    Ok(x.0[..6].try_into().unwrap())
+}
 
-// stress:1 ends here
+fn stress_values(input: &mut &str) -> PResult<Vec<f64>> {
+    use winnow::ascii::space1;
+    repeat(6, preceded(space1, double)).parse_next(input)
+}
+// cfcdcec2 ends here
 
 // [[file:../../adaptors.note::ee469f9d][ee469f9d]]
 fn lattice_vectors<'a>(input: &mut &'a str) -> PResult<[[f64; 3]; 3]> {
@@ -252,11 +267,12 @@ fn outcar_positons_and_forces() -> PResult<()> {
 // [[file:../../adaptors.note::cf96d53e][cf96d53e]]
 // For old VASP below 5.2.11
 fn parse_frames_old(input: &mut &str) -> PResult<Vec<Frame>> {
-    let frame = (energy_toten, lattice_vectors, positions_and_forces);
+    use winnow::combinator::opt;
 
+    let frame = (energy_toten, opt(stress), lattice_vectors, positions_and_forces);
     let frames_data: Vec<_> = repeat(1.., frame).context(label("OUTCAR frames")).parse_next(input)?;
     let mut frames = vec![];
-    for (energy, lattice_vectors, p_and_f) in frames_data {
+    for (energy, stress, lattice_vectors, p_and_f) in frames_data {
         let mut frame = Frame::default();
         frame.energy = energy;
         frame.positions = p_and_f.iter().map(|x| x[..3].try_into().unwrap()).collect();
@@ -269,11 +285,11 @@ fn parse_frames_old(input: &mut &str) -> PResult<Vec<Frame>> {
 
 // For VASP above 5.2.11
 fn parse_frames(input: &mut &str) -> PResult<Vec<Frame>> {
-    let frame = (lattice_vectors, positions_and_forces, energy_toten);
-
+    use winnow::combinator::opt;
+    let frame = (opt(stress), lattice_vectors, positions_and_forces, energy_toten);
     let frames_data: Vec<_> = repeat(1.., frame).context(label("OUTCAR frames")).parse_next(input)?;
     let mut frames = vec![];
-    for (lattice_vectors, p_and_f, energy) in frames_data {
+    for (stress, lattice_vectors, p_and_f, energy) in frames_data {
         let mut frame = Frame::default();
         frame.energy = energy;
         frame.positions = p_and_f.iter().map(|x| x[0..3].try_into().unwrap()).collect();
@@ -291,12 +307,13 @@ pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
     let natoms = symbols.len();
 
     let energy_part_pattern = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM";
+    // let stress_part_pattern = "  FORCE on cell =-STRESS in cart";
     let forces_part_pattern = "POSITION                                       TOTAL-FORCE";
     let lattice_part_pattern = " VOLUME and BASIS-vectors are now :";
     let pattern = format!("{lattice_part_pattern}|{forces_part_pattern}|{energy_part_pattern}");
     let mut reader = GrepReader::try_from_path(f.as_ref())?;
     let n = reader.mark(&pattern, None)?;
-    ensure!(n >= 2, "Not enough data records!");
+    ensure!(n >= 3, "Not enough data records!");
 
     let mut s = String::new();
     reader.goto_next_marker();
@@ -312,6 +329,9 @@ pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
         } else if last_line.contains(lattice_part_pattern) {
             reader.read_lines(7, &mut s).ok()?;
             Some(3)
+        // } else if last_line.contains(stress_part_pattern) {
+        //     reader.read_lines(13, &mut s).ok()?;
+        //     Some(4)
         } else {
             reader.goto_next_marker().ok()?;
             reader.read_lines(1, &mut s).ok()?;
