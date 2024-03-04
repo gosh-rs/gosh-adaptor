@@ -14,6 +14,7 @@ pub struct Frame {
     pub energy: f64,
     pub positions: Vec<[f64; 3]>,
     pub forces: Vec<[f64; 3]>,
+    pub lattice: [[f64; 3]; 3],
 }
 // c35d320f ends here
 
@@ -184,9 +185,29 @@ fn outcar_atom_types() -> Result<()> {
 
 // stress:1 ends here
 
-// [[file:../../adaptors.note::*lattice][lattice:1]]
+// [[file:../../adaptors.note::ee469f9d][ee469f9d]]
+fn lattice_vectors<'a>(input: &mut &'a str) -> PResult<[[f64; 3]; 3]> {
+    use winnow::ascii::space1;
+    let vectors = seq! {
+        _: " VOLUME and BASIS-vectors are now :", _: rest_line,
+        // -----------------------------------------------------------------------------
+        _: rest_line,
+        //   energy-cutoff  :     1000.00
+        _: rest_line,
+        //   volume of cell :      120.31
+        _: rest_line,
+        // direct lattice vectors                 reciprocal lattice vectors
+        _: space1, _: "direct lattice vectors", _: space1, _: "reciprocal lattice vectors", _: rest_line,
+        _: space1, xyz_array, _: rest_line,
+        _: space1, xyz_array, _: rest_line,
+        _: space1, xyz_array, _: rest_line,
+    }
+    .context(label("OUTCAR direct lattice vectors"))
+    .parse_next(input)?;
 
-// lattice:1 ends here
+    Ok([vectors.0, vectors.1, vectors.2])
+}
+// ee469f9d ends here
 
 // [[file:../../adaptors.note::b5eb3fb1][b5eb3fb1]]
 fn position_and_force(input: &mut &str) -> PResult<[f64; 6]> {
@@ -231,15 +252,16 @@ fn outcar_positons_and_forces() -> PResult<()> {
 // [[file:../../adaptors.note::cf96d53e][cf96d53e]]
 // For old VASP below 5.2.11
 fn parse_frames_old(input: &mut &str) -> PResult<Vec<Frame>> {
-    let frame = (positions_and_forces, energy_toten);
+    let frame = (energy_toten, lattice_vectors, positions_and_forces);
 
     let frames_data: Vec<_> = repeat(1.., frame).context(label("OUTCAR frames")).parse_next(input)?;
     let mut frames = vec![];
-    for (p_and_f, energy) in frames_data {
+    for (energy, lattice_vectors, p_and_f) in frames_data {
         let mut frame = Frame::default();
         frame.energy = energy;
         frame.positions = p_and_f.iter().map(|x| x[..3].try_into().unwrap()).collect();
         frame.forces = p_and_f.iter().map(|x| x[3..6].try_into().unwrap()).collect();
+        frame.lattice = lattice_vectors;
         frames.push(frame);
     }
     Ok(frames)
@@ -247,15 +269,16 @@ fn parse_frames_old(input: &mut &str) -> PResult<Vec<Frame>> {
 
 // For VASP above 5.2.11
 fn parse_frames(input: &mut &str) -> PResult<Vec<Frame>> {
-    let frame = (energy_toten, positions_and_forces);
+    let frame = (lattice_vectors, positions_and_forces, energy_toten);
 
     let frames_data: Vec<_> = repeat(1.., frame).context(label("OUTCAR frames")).parse_next(input)?;
     let mut frames = vec![];
-    for (energy, p_and_f) in frames_data {
+    for (lattice_vectors, p_and_f, energy) in frames_data {
         let mut frame = Frame::default();
         frame.energy = energy;
         frame.positions = p_and_f.iter().map(|x| x[0..3].try_into().unwrap()).collect();
         frame.forces = p_and_f.iter().map(|x| x[3..6].try_into().unwrap()).collect();
+        frame.lattice = lattice_vectors;
         frames.push(frame);
     }
     Ok(frames)
@@ -267,9 +290,10 @@ pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
     let symbols = get_atom_types_from(f)?;
     let natoms = symbols.len();
 
-    let energy_part_pattern = "FREE ENERGIE OF THE ION-ELECTRON SYSTEM";
+    let energy_part_pattern = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM";
     let forces_part_pattern = "POSITION                                       TOTAL-FORCE";
-    let pattern = format!("{energy_part_pattern}|{forces_part_pattern}");
+    let lattice_part_pattern = " VOLUME and BASIS-vectors are now :";
+    let pattern = format!("{lattice_part_pattern}|{forces_part_pattern}|{energy_part_pattern}");
     let mut reader = GrepReader::try_from_path(f.as_ref())?;
     let n = reader.mark(&pattern, None)?;
     ensure!(n >= 2, "Not enough data records!");
@@ -285,6 +309,9 @@ pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
         } else if last_line.contains(forces_part_pattern) {
             reader.read_lines(natoms + 2, &mut s).ok()?;
             Some(2)
+        } else if last_line.contains(lattice_part_pattern) {
+            reader.read_lines(7, &mut s).ok()?;
+            Some(3)
         } else {
             reader.goto_next_marker().ok()?;
             reader.read_lines(1, &mut s).ok()?;
@@ -294,7 +321,7 @@ pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
     // collect all frames
     while let Some(_) = collect_frames() {}
     // println!("{s}");
-    let mut parse_frames = if s.starts_with(" POSITION") {
+    let mut parse_frames = if s.starts_with(energy_part_pattern) {
         parse_frames_old
     } else {
         parse_frames
@@ -314,12 +341,12 @@ pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
 #[test]
 fn test_vasp() -> Result<()> {
     let f = "./tests/files/vasp/OUTCAR-5.3.5";
-    let frames = parse_from(f.as_ref())?;
+    let frames = parse_from(f.as_ref()).unwrap();
     assert_eq!(frames.len(), 1);
 
     // test files from Jmol
     let f = "./tests/files/vasp/OUTCAR-5.2";
-    let frames = parse_from(f.as_ref())?;
+    let frames = parse_from(f.as_ref()).unwrap();
     assert_eq!(frames.len(), 1);
 
     // test files from Jmol
@@ -329,7 +356,7 @@ fn test_vasp() -> Result<()> {
 
     // test files from Jmol
     let f = "tests/files/vasp/AlH3_Vasp5.dat";
-    let frames = parse_from(f.as_ref())?;
+    let frames = parse_from(f.as_ref()).unwrap();
     assert_eq!(frames.len(), 7);
 
     Ok(())
