@@ -10,22 +10,12 @@ use crate::parsers::*;
 // [[file:../../adaptors.note::c35d320f][c35d320f]]
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct Frame {
+    pub symbols: Vec<String>,
     pub energy: f64,
     pub positions: Vec<[f64; 3]>,
     pub forces: Vec<[f64; 3]>,
 }
 // c35d320f ends here
-
-// [[file:../../adaptors.note::50721456][50721456]]
-fn number_of_ions(input: &mut &str) -> PResult<usize> {
-    use winnow::ascii::{digit1, line_ending, space0};
-
-    let label = "number of ions     NIONS =";
-    let skip = jump_to(label);
-    let nions = ws(digit1).try_map(|s: &str| s.parse::<usize>());
-    preceded(skip, nions).parse_next(input)
-}
-// 50721456 ends here
 
 // [[file:../../adaptors.note::d5a293f0][d5a293f0]]
 //   free energy    TOTEN  =       -20.54559168 eV
@@ -66,6 +56,129 @@ fn outcar_energy() -> PResult<()> {
     Ok(())
 }
 // d5a293f0 ends here
+
+// [[file:../../adaptors.note::3713b178][3713b178]]
+// O_s or Ca_pv or V
+fn element_symbol_in_potcar<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    use winnow::ascii::alpha1;
+    use winnow::combinator::opt;
+    terminated(alpha1, opt(("_", alpha1))).parse_next(input)
+}
+
+fn atom_type<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    use winnow::ascii::{space0, space1};
+    use winnow::combinator::alt;
+
+    let sym = seq! {
+        // "POTCAR:" or "TITEL ="
+        _: space1, _: alt(("POTCAR:", "TITEL  =")), _: space0,
+        // PAW_GGA
+        _: not_space, _: space1,
+        // Sr_sv
+        element_symbol_in_potcar,
+        _: rest_line,
+    }
+    .context(label("OUTCAR atom type"))
+    .parse_next(input)?;
+
+    Ok(sym.0)
+}
+
+pub(self) fn atom_types<'a>(input: &mut &'a str) -> PResult<Vec<&'a str>> {
+    repeat(1.., atom_type).parse_next(input)
+}
+
+#[test]
+fn outcar_atom_type() {
+    let line = "   TITEL  = PAW H 06May1998                                                     \n";
+    let (_rest, sym) = atom_type.parse_peek(line).unwrap();
+    assert_eq!(sym, "H");
+
+    let line = " POTCAR:   PAW_PBE K_sv 06Sep2000                 \n";
+    let (_, sym) = atom_type.parse_peek(line).unwrap();
+    assert_eq!(sym, "K");
+}
+// 3713b178 ends here
+
+// [[file:../../adaptors.note::01a764cc][01a764cc]]
+// ions per type =             192  95   1   1
+pub(self) fn num_ions_per_type<'a>(input: &mut &'a str) -> PResult<Vec<usize>> {
+    use winnow::ascii::{space0, space1, line_ending};
+    use winnow::combinator::alt;
+
+    let sym = seq! {
+        _: space1, _: "ions per type =", _: space0,
+        // 192  95   1   1
+        repeat(1.., preceded(space0, unsiged_integer)), _: space0,
+        _: line_ending,
+    }
+    .context(label("OUTCAR atom type"))
+    .parse_next(input)?;
+
+    Ok(sym.0)
+}
+
+#[test]
+fn outcar_num_ions_per_type() {
+    let line = "   ions per type =             192  95   1   1\n";
+    let (_, nums) = num_ions_per_type.parse_peek(line).unwrap();
+    assert_eq!(nums.len(), 4);
+}
+// 01a764cc ends here
+
+// [[file:../../adaptors.note::a5341d1a][a5341d1a]]
+pub(self) fn get_atom_types_from(f: &Path) -> Result<Vec<String>> {
+    use text_parser::TextReader;
+
+    let mut reader = TextReader::try_from_path(f)?;
+    let match_collect =
+        |line: &str| line.contains("TITEL  =") || line.contains("POTCAR:") || line.contains("ions per type =");
+    let match_stop = |line: &str| line.contains("ions per type =");
+
+    let mut collected = String::new();
+    for line in reader.lines() {
+        if match_collect(&line) {
+            collected.push_str(&line);
+            collected.push_str("\n");
+        }
+        if match_stop(&line) {
+            break;
+        }
+    }
+
+    let (types, nums) = (atom_types, num_ions_per_type)
+        .parse(&collected)
+        .map_err(|e| parse_error(e, &collected))?;
+
+    let symbols: Vec<_> = types
+        .into_iter()
+        .zip(nums)
+        .flat_map(|(s, n)| std::iter::repeat(s.to_owned()).take(n))
+        .collect();
+    Ok(symbols)
+}
+
+#[test]
+fn outcar_atom_types() -> Result<()> {
+    let f = "./tests/files/vasp/OUTCAR-5.3.5";
+    let symbols = get_atom_types_from(f.as_ref())?;
+    assert_eq!(symbols.len(), 289);
+
+    let f = "tests/files/vasp/OUTCAR_diamond.dat";
+    let symbols = get_atom_types_from(f.as_ref())?;
+    assert_eq!(symbols.len(), 2);
+
+    let f = "tests/files/vasp/OUTCAR-5.2";
+    let symbols = get_atom_types_from(f.as_ref())?;
+    assert_eq!(symbols.len(), 8);
+
+    let f = "tests/files/vasp/AlH3_Vasp5.dat";
+    let symbols = get_atom_types_from(f.as_ref())?;
+    assert_eq!(symbols.len(), 8);
+
+    Ok(())
+}
+// a5341d1a ends here
 
 // [[file:../../adaptors.note::*stress][stress:1]]
 
@@ -150,21 +263,18 @@ fn parse_frames(input: &mut &str) -> PResult<Vec<Frame>> {
 
 /// Parse `Frame` data from OUTCAR in `f`
 pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
-    let n_ions_part_pattern = "number of ions     NIONS =";
+    // quick read to get get atom types
+    let symbols = get_atom_types_from(f)?;
+    let natoms = symbols.len();
+
     let energy_part_pattern = "FREE ENERGIE OF THE ION-ELECTRON SYSTEM";
     let forces_part_pattern = "POSITION                                       TOTAL-FORCE";
-
+    let pattern = format!("{energy_part_pattern}|{forces_part_pattern}");
     let mut reader = GrepReader::try_from_path(f.as_ref())?;
-    let pattern = format!("{n_ions_part_pattern}|{energy_part_pattern}|{forces_part_pattern}");
     let n = reader.mark(&pattern, None)?;
+    ensure!(n >= 2, "Not enough data records!");
 
-    ensure!(n >= 2);
     let mut s = String::new();
-    reader.goto_marker(0);
-    reader.read_lines(1, &mut s)?;
-    let natoms: usize = number_of_ions.parse(&mut &s[..]).map_err(|e| parse_error(e, &s))?;
-    s.clear();
-
     reader.goto_next_marker();
     reader.read_lines(1, &mut s)?;
     let mut collect_frames = || {
@@ -189,7 +299,12 @@ pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
     } else {
         parse_frames
     };
-    let frames = parse_frames.parse(&mut &s[..]).map_err(|e| parse_error(e, &s[..]))?;
+    let mut frames = parse_frames.parse(&mut &s[..]).map_err(|e| parse_error(e, &s[..]))?;
+
+    // append symbols in frames
+    for frame in &mut frames {
+        frame.symbols = symbols.clone();
+    }
 
     Ok(frames)
 }

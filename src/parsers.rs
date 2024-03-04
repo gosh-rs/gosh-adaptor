@@ -22,6 +22,15 @@ pub fn parse_error(e: winnow::error::ParseError<&str, winnow::error::ContextErro
     anyhow!("found parse error:\n{:}\ninput={input:?}", e.to_string())
 }
 
+/// Match one unsigned integer: 123
+pub fn unsiged_integer<'a>(input: &mut &'a str) -> PResult<usize> {
+    use winnow::ascii::digit1;
+    digit1
+        .try_map(|x: &str| x.parse())
+        .context(label("usize"))
+        .parse_next(input)
+}
+
 /// Parse a f64 float number
 pub fn double(input: &mut &str) -> PResult<f64> {
     use winnow::ascii::float;
