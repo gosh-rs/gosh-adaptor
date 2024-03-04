@@ -44,6 +44,13 @@ pub fn not_space<'a>(input: &mut &'a str) -> PResult<&'a str> {
         .parse_next(input)
 }
 
+/// Consume three float numbers separated by one or more spaces. Return xyz array.
+pub fn xyz_array(s: &mut &str) -> PResult<[f64; 3]> {
+    use winnow::ascii::space1;
+    let x = seq! {double, _: space1, double, _: space1, double}.parse_next(s)?;
+    Ok([x.0, x.1, x.2])
+}
+
 /// Read a new line including eol (\n) or consume the rest if there is no eol
 /// char.
 pub fn read_line<'a>(s: &mut &'a str) -> PResult<&'a str> {
