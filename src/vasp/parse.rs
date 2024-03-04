@@ -18,6 +18,23 @@ pub struct Frame {
 }
 // c35d320f ends here
 
+// [[file:../../adaptors.note::6f1bf8e7][6f1bf8e7]]
+use gchemol_parser::TextReader;
+use std::fs::File;
+use std::io::BufReader;
+
+pub struct Outcar {
+    reader: TextReader<BufReader<File>>,
+}
+
+impl Outcar {
+    pub fn try_from_path(f: &Path) -> Result<Self> {
+        let reader = TextReader::try_from_path(f)?;
+        Ok(Self { reader })
+    }
+}
+// 6f1bf8e7 ends here
+
 // [[file:../../adaptors.note::d5a293f0][d5a293f0]]
 //   free energy    TOTEN  =       -20.54559168 eV
 fn energy_toten(input: &mut &str) -> PResult<f64> {
@@ -113,7 +130,7 @@ pub(self) fn num_ions_per_type<'a>(input: &mut &'a str) -> PResult<Vec<usize>> {
         repeat(1.., preceded(space0, unsiged_integer)), _: space0,
         _: line_ending,
     }
-    .context(label("OUTCAR atom type"))
+    .context(label("OUTCAR ions per type"))
     .parse_next(input)?;
 
     Ok(sym.0)
@@ -263,6 +280,58 @@ fn outcar_positons_and_forces() -> PResult<()> {
     Ok(())
 }
 // b5eb3fb1 ends here
+
+// [[file:../../adaptors.note::5843bea2][5843bea2]]
+impl Outcar {
+    pub(self) fn parse_atom_types(&mut self) -> Result<Vec<String>> {
+        use winnow::token::take_until;
+
+        let potcar_or_titel = |line: &str| line.contains("TITEL  =") || line.contains("POTCAR:");
+        self.reader.seek_line(potcar_or_titel)?;
+
+        let mut buf = String::new();
+        let ions_per_type = |line: &str| line.contains(" ions per type =");
+        self.reader.read_until(&mut buf, ions_per_type)?;
+        self.reader.read_line(&mut buf)?;
+
+        let (types, nums) = seq! {
+            atom_types,
+            _: jump_until("   ions per type ="),
+            num_ions_per_type
+        }
+        .parse(&buf)
+        .map_err(|e| parse_error(e, &buf))?;
+
+        let symbols: Vec<_> = types
+            .into_iter()
+            .zip(nums)
+            .flat_map(|(s, n)| std::iter::repeat(s.to_owned()).take(n))
+            .collect();
+        Ok(symbols)
+    }
+}
+
+#[test]
+fn outcar_atom_types_new() -> Result<()> {
+    let mut outcar = Outcar::try_from_path("./tests/files/vasp/OUTCAR-5.3.5".as_ref())?;
+    let symbols = outcar.parse_atom_types().unwrap();
+    assert_eq!(symbols.len(), 289);
+
+    let mut outcar = Outcar::try_from_path("tests/files/vasp/OUTCAR_diamond.dat".as_ref())?;
+    let symbols = outcar.parse_atom_types().unwrap();
+    assert_eq!(symbols.len(), 2);
+
+    let mut outcar = Outcar::try_from_path("tests/files/vasp/OUTCAR-5.2".as_ref())?;
+    let symbols = outcar.parse_atom_types().unwrap();
+    assert_eq!(symbols.len(), 8);
+
+    let mut outcar = Outcar::try_from_path("tests/files/vasp/AlH3_Vasp5.dat".as_ref())?;
+    let symbols = outcar.parse_atom_types().unwrap();
+    assert_eq!(symbols.len(), 8);
+
+    Ok(())
+}
+// 5843bea2 ends here
 
 // [[file:../../adaptors.note::cf96d53e][cf96d53e]]
 // For old VASP below 5.2.11

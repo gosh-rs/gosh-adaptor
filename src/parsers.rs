@@ -84,6 +84,17 @@ pub fn jump_to<'a>(literal: &str) -> impl FnMut(&mut &str) -> PResult<()> + '_ {
     }
 }
 
+/// Take until found `literal`. The `literal` will not be consumed.
+pub fn jump_until<'a>(literal: &str) -> impl FnMut(&mut &str) -> PResult<()> + '_ {
+    use winnow::token::take_until;
+    move |input: &mut &str| {
+        let _: &str = take_until(1.., literal)
+            .context(label("jump_until"))
+            .parse_next(input)?;
+        Ok(())
+    }
+}
+
 /// A combinator that takes a parser `inner` and produces a parser
 /// that also consumes both leading and trailing whitespace, returning
 /// the output of `inner`.
