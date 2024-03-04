@@ -15,7 +15,8 @@ pub struct Vasp();
 // [[file:../adaptors.note::43388644][43388644]]
 use gosh_model::ModelProperties;
 
-// FIXME: still looks hacky
+#[allow(unused)]
+// looks hacky
 fn guess_molecule_from_contcar(positions: Vec<[f64; 3]>, fout: &Path) -> Molecule {
     // recover element data from CONTCAR
     let contcar = fout.with_file_name("CONTCAR");
@@ -37,9 +38,10 @@ impl crate::ModelAdaptor for Vasp {
             .into_iter()
             .map(|frame| {
                 let mut mp = ModelProperties::default();
+                // mp.set_molecule(guess_molecule_from_contcar(frame.positions, outfile.as_ref()));
+                mp.set_molecule(Molecule::from_atoms(frame.symbols.into_iter().zip(frame.positions)));
                 mp.set_energy(frame.energy);
                 mp.set_forces(frame.forces);
-                mp.set_molecule(guess_molecule_from_contcar(frame.positions, outfile.as_ref()));
                 mp
             })
             .collect())
