@@ -28,6 +28,13 @@ pub fn double(input: &mut &str) -> PResult<f64> {
     float(input)
 }
 
+/// Anything except whitespace, this parser will not consume "\n" character
+pub fn not_space<'a>(input: &mut &'a str) -> PResult<&'a str> {
+    winnow::token::take_till(1.., |c| " \t\r\n".contains(c))
+        .context(label("not_space"))
+        .parse_next(input)
+}
+
 /// Read a new line including eol (\n) or consume the rest if there is no eol
 /// char.
 pub fn read_line<'a>(s: &mut &'a str) -> PResult<&'a str> {
@@ -117,5 +124,25 @@ fn test_read_line() {
     let (rest, line) = read_line.parse_peek(txt).unwrap();
     assert_eq!(line, txt);
     assert_eq!(rest, "");
+
+    let txt = "no";
+    let (_, line) = not_space.parse_peek(txt).unwrap();
+    assert_eq!(line, "no");
+
+    let txt = "no ";
+    let (_, line) = not_space.parse_peek(txt).unwrap();
+    assert_eq!(line, "no");
+
+    let txt = "no-a\n";
+    let (_, line) = not_space.parse_peek(txt).unwrap();
+    assert_eq!(line, "no-a");
+
+    let txt = "no+b\t";
+    let (_, line) = not_space.parse_peek(txt).unwrap();
+    assert_eq!(line, "no+b");
+
+    let txt = " no-a\n";
+    let x = not_space.parse_peek(txt);
+    assert!(x.is_err());
 }
 // 10e5dba2 ends here

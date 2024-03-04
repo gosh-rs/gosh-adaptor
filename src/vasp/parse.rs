@@ -67,6 +67,14 @@ fn outcar_energy() -> PResult<()> {
 }
 // d5a293f0 ends here
 
+// [[file:../../adaptors.note::*stress][stress:1]]
+
+// stress:1 ends here
+
+// [[file:../../adaptors.note::*lattice][lattice:1]]
+
+// lattice:1 ends here
+
 // [[file:../../adaptors.note::b5eb3fb1][b5eb3fb1]]
 fn position_and_force(input: &mut &str) -> PResult<[f64; 6]> {
     use winnow::ascii::space1;
