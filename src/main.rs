@@ -30,6 +30,7 @@ enum Task {
 
 /// Read calculated results, and format them as standard external model results.
 #[derive(Debug, Parser)]
+#[clap(author, version, about)]
 struct Cli {
     #[clap(flatten)]
     verbose: Verbosity,
@@ -65,13 +66,6 @@ fn main() -> Result<()> {
         "gaussian" => process_app!(Gaussian(), args),
         "null" => process_app!(Null(), args),
         _ => todo!(),
-    }
-
-    match &args.command {
-        Some(Task::Dump { pqfile }) => {
-            // super::io::pick_frames_to(&args.trjfile, &outfile, *iframe, *jframe)?;
-        }
-        None => {}
     }
 
     Ok(())
