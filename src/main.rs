@@ -7,22 +7,46 @@ use gut::prelude::*;
 
 use gosh_adaptor::*;
 
+macro_rules! process_app {
+    ($app:expr, $args:expr) => {{
+        let app = $app;
+        if let Some(Task::Dump { pqfile }) = &$args.command {
+            app.dump(&$args.outfile, pqfile)?;
+        } else {
+            parse(app, $args.all, &$args.outfile)?;
+        }
+    }};
+}
+
+#[derive(Subcommand, Debug)]
+enum Task {
+    /// Parsed computed results in `outfile` and write to `pqfile` in parquet
+    /// format.
+    ///
+    /// # Example
+    /// * gosh-adaptor OUTCAR dump calculated.pq
+    Dump { pqfile: PathBuf },
+}
+
 /// Read calculated results, and format them as standard external model results.
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
+#[clap(author, version, about)]
 struct Cli {
-    #[structopt(flatten)]
+    #[clap(flatten)]
     verbose: Verbosity,
 
     /// Chemical model, possible values: mopac, siesta, vasp, gulp.
     chemical_model: String,
 
     /// calculated output file
-    #[structopt()]
     outfile: PathBuf,
 
     /// Parse all result entries found in the output
-    #[structopt(short = 'a', long = "all")]
+    #[arg(short, long)]
     all: bool,
+
+    #[command(subcommand)]
+    command: Option<Task>,
 }
 
 fn main() -> Result<()> {
@@ -35,30 +59,12 @@ fn main() -> Result<()> {
         outfile, &args.chemical_model
     );
     match args.chemical_model.as_str() {
-        "mopac" => {
-            let app = Mopac();
-            parse(app, args.all, outfile)?;
-        }
-        "siesta" => {
-            let app = Siesta();
-            parse(app, args.all, outfile)?;
-        }
-        "gulp" => {
-            let app = Gulp();
-            parse(app, args.all, outfile)?;
-        }
-        "vasp" => {
-            let app = Vasp();
-            parse(app, args.all, outfile)?;
-        }
-        "gaussian" => {
-            let app = Gaussian();
-            parse(app, args.all, outfile)?;
-        }
-        "null" => {
-            let app = Null();
-            parse(app, args.all, outfile)?;
-        }
+        "mopac" => process_app!(Mopac(), args),
+        "siesta" => process_app!(Siesta(), args),
+        "gulp" => process_app!(Gulp(), args),
+        "vasp" => process_app!(Vasp(), args),
+        "gaussian" => process_app!(Gaussian(), args),
+        "null" => process_app!(Null(), args),
         _ => todo!(),
     }
 
