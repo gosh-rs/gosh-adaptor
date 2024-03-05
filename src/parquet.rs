@@ -8,25 +8,30 @@ use gosh_dataset::SimpleParquetFileWriter;
 #[derive(Debug, Serialize, Clone, Default)]
 struct Parsed {
     energy: Option<f64>,
+    symbols: Option<Vec<String>>,
     // NOTE: do not [f64; 3], for easy to read out using polars
     positions: Option<Vec<Vec<f64>>>,
     forces: Option<Vec<Vec<f64>>>,
+    lattice: Option<Vec<Vec<f64>>>,
 }
 
 fn to_parsed(mp: ModelProperties) -> Parsed {
+    let mol_opt = mp.get_molecule();
     Parsed {
         energy: mp.get_energy(),
-        positions: mp
-            .get_molecule()
-            .map(|mol| mol.positions().collect_vec())
-            .map(to_parquet_vector),
+        symbols: mol_opt.map(|mol| mol.symbols().into_iter().map(|x| x.to_owned()).collect_vec()),
+        positions: mol_opt.map(|mol| mol.positions().collect_vec()).map(to_parquet_vector),
         forces: mp.get_forces().cloned().map(to_parquet_vector),
+        lattice: mol_opt
+            .and_then(|mol| mol.get_lattice())
+            .map(|lat| lat.vectors())
+            .map(to_parquet_vector),
         ..Default::default()
     }
 }
 
-fn to_parquet_vector(nested_array: Vec<[f64; 3]>) -> Vec<Vec<f64>> {
-    nested_array.iter().map(|x| x.to_vec()).collect()
+fn to_parquet_vector(nested_array: impl IntoIterator<Item = impl Into<[f64; 3]>>) -> Vec<Vec<f64>> {
+    nested_array.into_iter().map(|x| x.into().to_vec()).collect()
 }
 // 819fc289 ends here
 

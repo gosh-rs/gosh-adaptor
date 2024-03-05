@@ -13,6 +13,7 @@ pub struct Vasp();
 // 343b6bbc ends here
 
 // [[file:../adaptors.note::43388644][43388644]]
+use crate::gchemol::Lattice;
 use gosh_model::ModelProperties;
 
 #[allow(unused)]
@@ -39,8 +40,10 @@ impl crate::ModelAdaptor for Vasp {
             .into_iter()
             .map(|frame| {
                 let mut mp = ModelProperties::default();
-                // mp.set_molecule(guess_molecule_from_contcar(frame.positions, outfile.as_ref()));
-                mp.set_molecule(Molecule::from_atoms(frame.symbols.into_iter().zip(frame.positions)));
+                let mut mol = Molecule::from_atoms(frame.symbols.into_iter().zip(frame.positions));
+                let lat = Lattice::new(frame.lattice);
+                mol.set_lattice(lat);
+                mp.set_molecule(mol);
                 mp.set_energy(frame.energy);
                 mp.set_forces(frame.forces);
                 mp
