@@ -13,6 +13,7 @@ struct Parsed {
     positions: Option<Vec<Vec<f64>>>,
     forces: Option<Vec<Vec<f64>>>,
     lattice: Option<Vec<Vec<f64>>>,
+    stress: Option<Vec<f64>>,
 }
 
 fn to_parsed(mp: ModelProperties) -> Parsed {
@@ -22,6 +23,7 @@ fn to_parsed(mp: ModelProperties) -> Parsed {
         symbols: mol_opt.map(|mol| mol.symbols().into_iter().map(|x| x.to_owned()).collect_vec()),
         positions: mol_opt.map(|mol| mol.positions().collect_vec()).map(to_parquet_vector),
         forces: mp.get_forces().cloned().map(to_parquet_vector),
+        stress: mol_opt.and_then(|mol| mol.properties.load::<Vec<f64>>("stress").ok()),
         lattice: mol_opt
             .and_then(|mol| mol.get_lattice())
             .map(|lat| lat.vectors())

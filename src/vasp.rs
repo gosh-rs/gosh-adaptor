@@ -43,6 +43,7 @@ impl crate::ModelAdaptor for Vasp {
                 let mut mol = Molecule::from_atoms(frame.symbols.into_iter().zip(frame.positions));
                 let lat = Lattice::new(frame.lattice);
                 mol.set_lattice(lat);
+                let _ = mol.properties.store("stress", &frame.stress);
                 mp.set_molecule(mol);
                 mp.set_energy(frame.energy);
                 mp.set_forces(frame.forces);
