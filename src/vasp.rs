@@ -33,7 +33,8 @@ fn guess_molecule_from_contcar(positions: Vec<[f64; 3]>, fout: &Path) -> Molecul
 
 impl crate::ModelAdaptor for Vasp {
     fn parse_all<P: AsRef<Path>>(&self, outfile: P) -> Result<Vec<ModelProperties>> {
-        let frames = self::parse::parse_from(outfile.as_ref())?;
+        let mut outcar = self::parse::Outcar::try_from_path(outfile.as_ref())?;
+        let frames = outcar.parse_frames()?;
         Ok(frames
             .into_iter()
             .map(|frame| {

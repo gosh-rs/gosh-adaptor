@@ -1,11 +1,4 @@
-
-
-
-// * lib.rs
-// :PROPERTIES:
-// :header-args: :comments org :tangle src/lib.rs
-// :END:
-// ** mods
+// mods
 // #+name: 3022ca5d
 
 mod gaussian;
@@ -29,9 +22,7 @@ mod common {
     pub use std::path::{Path, PathBuf};
 }
 
-
-
-// ** imports
+// imports
 // #+name: 1650f65e
 
 use gosh_core::*;
@@ -39,9 +30,7 @@ use gosh_core::*;
 use gchemol::prelude::*;
 use gchemol::{Atom, Molecule};
 
-
-
-// ** pub/trait
+// pub/trait
 // #+name: 395f043c
 
 use gosh_core::gut::prelude::*;
@@ -66,9 +55,7 @@ pub trait ModelAdaptor {
     fn parse_all<P: AsRef<Path>>(&self, _outfile: P) -> Result<Vec<ModelProperties>>;
 }
 
-
-
-// ** exports
+// exports
 // #+name: 111a01d3
 
 pub use crate::gaussian::Gaussian;
@@ -82,3 +69,21 @@ pub use crate::repl::repl_enter_main;
 
 /// Write parsed results in parquet format.
 pub use crate::parquet::ParquetWrite;
+
+// exports/docs
+// #+name: cfaadb2d
+
+#[cfg(feature = "adhoc")]
+/// Docs for local mods
+pub mod docs {
+    macro_rules! export_doc {
+        ($l:ident) => {
+            pub mod $l {
+                pub use crate::$l::*;
+            }
+        };
+    }
+
+    export_doc!(parsers);
+    export_doc!(vasp);
+}
