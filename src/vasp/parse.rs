@@ -217,8 +217,7 @@ fn energy_toten(input: &mut &str) -> PResult<f64> {
     use winnow::ascii::{line_ending, space0};
 
     let energy = seq! {
-        _: "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM",
-        _: rest_line,
+        _: "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM (eV)", _: line_ending,
         _: "  ---------------",
         _: rest_line,
         _: "  free  energy   TOTEN  =",
@@ -253,8 +252,10 @@ fn outcar_energy() -> PResult<()> {
 
 // [[file:../../adaptors.note::cfcdcec2][cfcdcec2]]
 pub(self) fn stress<'a>(input: &mut &'a str) -> PResult<[f64; 6]> {
+    use winnow::ascii::line_ending;
+
     let x = seq! {
-        _: "  FORCE on cell =-STRESS in cart.", _: rest_line,
+        _: "  FORCE on cell =-STRESS in cart. coord.  units (eV)",
         _: jump_to("in kB"),
         //   in kB      -0.65036    -0.79073    -0.79508    -0.01450     0.00000     0.00000
         stress_values,
@@ -304,10 +305,10 @@ fn position_and_force(input: &mut &str) -> PResult<[f64; 6]> {
 }
 
 fn positions_and_forces(input: &mut &str) -> PResult<Vec<[f64; 6]>> {
-    use winnow::ascii::line_ending;
+    use winnow::ascii::{line_ending, space1};
 
     let values = seq! {
-        _: preceded(" POSITION ", rest_line),
+        _: " POSITION", _: space1, _: "TOTAL-FORCE (eV/Angst)", _: line_ending,
         _: preceded(" -------", rest_line),
            repeat(1.., terminated(position_and_force, line_ending)),
         _: preceded(" -------", rest_line),
@@ -378,11 +379,11 @@ impl Outcar {
 fn parse_frame(frame_text: &mut &str) -> PResult<Frame> {
     use winnow::combinator::opt;
 
-    let stress_part_pattern = "  FORCE on cell =-STRESS in cart.";
+    let stress_part_pattern = "  FORCE on cell =-STRESS in cart. coord.  units (eV):";
     let has_stress_part = frame_text.contains(stress_part_pattern);
     let lattice_part_pattern = " VOLUME and BASIS-vectors are now :";
-    let energy_part_pattern = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM";
-    let forces_part_pattern = " POSITION                                       TOTAL-FORCE";
+    let energy_part_pattern = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM (eV)";
+    let forces_part_pattern = " POSITION                                       TOTAL-FORCE (eV/Angst)";
 
     let mut frame = Frame::default();
     if has_stress_part {
@@ -455,6 +456,7 @@ fn vasp_outcar() -> Result<()> {
     let mut outcar = Outcar::try_from_path(f.as_ref())?;
     let frames = outcar.parse_frames().unwrap();
     assert_eq!(frames.len(), 7);
+    assert!(frames[0].stress.is_some());
 
     // let f = "/home/ybyygu/Documents/ni1/04zr2/OUTCAR";
     // let mut outcar = Outcar::try_from_path(f.as_ref())?;
