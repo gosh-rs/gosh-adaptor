@@ -23,7 +23,7 @@ pub fn parse_error(e: winnow::error::ParseError<&str, winnow::error::ContextErro
 }
 
 /// Match one unsigned integer: 123
-pub fn unsiged_integer<'a>(input: &mut &'a str) -> PResult<usize> {
+pub fn unsigned_integer<'a>(input: &mut &'a str) -> PResult<usize> {
     use winnow::ascii::digit1;
     digit1
         .try_map(|x: &str| x.parse())

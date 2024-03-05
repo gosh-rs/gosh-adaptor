@@ -88,7 +88,7 @@ pub(self) fn num_ions_per_type<'a>(input: &mut &'a str) -> PResult<Vec<usize>> {
     let sym = seq! {
         _: space1, _: "ions per type =", _: space0,
         // 192  95   1   1
-        repeat(1.., preceded(space0, unsiged_integer)), _: space0,
+        repeat(1.., preceded(space0, unsigned_integer)), _: space0,
         _: line_ending,
     }
     .context(label("OUTCAR ions per type"))
