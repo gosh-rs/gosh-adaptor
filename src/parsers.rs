@@ -77,7 +77,7 @@ pub fn rest_line<'a>(input: &mut &'a str) -> PResult<&'a str> {
 pub fn jump_to<'a>(literal: &str) -> impl FnMut(&mut &str) -> PResult<()> + '_ {
     use winnow::token::take_until;
     move |input: &mut &str| {
-        let _: (&str, &str) = (take_until(1.., literal), literal)
+        let _: (&str, &str) = (take_until(0.., literal), literal)
             .context(label("jump_to"))
             .parse_next(input)?;
         Ok(())
@@ -88,7 +88,7 @@ pub fn jump_to<'a>(literal: &str) -> impl FnMut(&mut &str) -> PResult<()> + '_ {
 pub fn jump_until<'a>(literal: &str) -> impl FnMut(&mut &str) -> PResult<()> + '_ {
     use winnow::token::take_until;
     move |input: &mut &str| {
-        let _: &str = take_until(1.., literal)
+        let _: &str = take_until(0.., literal)
             .context(label("jump_until"))
             .parse_next(input)?;
         Ok(())

@@ -15,6 +15,7 @@ pub struct Frame {
     pub positions: Vec<[f64; 3]>,
     pub forces: Vec<[f64; 3]>,
     pub lattice: [[f64; 3]; 3],
+    pub stress: Option<[f64; 6]>,
 }
 // c35d320f ends here
 
@@ -34,46 +35,6 @@ impl Outcar {
     }
 }
 // 6f1bf8e7 ends here
-
-// [[file:../../adaptors.note::d5a293f0][d5a293f0]]
-//   free energy    TOTEN  =       -20.54559168 eV
-fn energy_toten(input: &mut &str) -> PResult<f64> {
-    use winnow::ascii::{line_ending, space0};
-
-    let energy = seq! {
-        _: "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM",
-        _: rest_line,
-        _: "  ---------------",
-        _: rest_line,
-        _: "  free  energy   TOTEN  =",
-        _: space0,
-           double,
-        _: space0,
-        _: "eV",
-        _: line_ending,
-        // ignore other two lines
-        _: read_line,
-        _: read_line
-    }
-    .context(label("energy TOTEN"))
-    .parse_next(input)?;
-    Ok(energy.0)
-}
-
-#[test]
-fn outcar_energy() -> PResult<()> {
-    let s = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM (eV)
-  ---------------------------------------------------
-  free  energy   TOTEN  =       -20.028155 eV
-
-  energy  without entropy=      -20.028155  energy(sigma->0) =      -20.028155
-";
-    let (_, v) = energy_toten.parse_peek(s)?;
-    assert_eq!(v, -20.028155);
-
-    Ok(())
-}
-// d5a293f0 ends here
 
 // [[file:../../adaptors.note::3713b178][3713b178]]
 // O_s or Ca_pv or V
@@ -198,6 +159,98 @@ fn outcar_atom_types() -> Result<()> {
 }
 // a5341d1a ends here
 
+// [[file:../../adaptors.note::5843bea2][5843bea2]]
+impl Outcar {
+    pub(self) fn parse_atom_types(&mut self) -> Result<Vec<String>> {
+        use winnow::token::take_until;
+
+        let potcar_or_titel = |line: &str| line.contains("TITEL  =") || line.contains("POTCAR:");
+        self.reader.seek_line(potcar_or_titel)?;
+
+        let mut buf = String::new();
+        let ions_per_type = |line: &str| line.contains(" ions per type =");
+        self.reader.read_until(&mut buf, ions_per_type)?;
+        self.reader.read_line(&mut buf)?;
+
+        let (types, nums) = seq! {
+            atom_types,
+            _: jump_until("   ions per type ="),
+            num_ions_per_type
+        }
+        .parse(&buf)
+        .map_err(|e| parse_error(e, &buf))?;
+
+        let symbols: Vec<_> = types
+            .into_iter()
+            .zip(nums)
+            .flat_map(|(s, n)| std::iter::repeat(s.to_owned()).take(n))
+            .collect();
+        Ok(symbols)
+    }
+}
+
+#[test]
+fn outcar_atom_types_new() -> Result<()> {
+    let mut outcar = Outcar::try_from_path("./tests/files/vasp/OUTCAR-5.3.5".as_ref())?;
+    let symbols = outcar.parse_atom_types().unwrap();
+    assert_eq!(symbols.len(), 289);
+
+    let mut outcar = Outcar::try_from_path("tests/files/vasp/OUTCAR_diamond.dat".as_ref())?;
+    let symbols = outcar.parse_atom_types().unwrap();
+    assert_eq!(symbols.len(), 2);
+
+    let mut outcar = Outcar::try_from_path("tests/files/vasp/OUTCAR-5.2".as_ref())?;
+    let symbols = outcar.parse_atom_types().unwrap();
+    assert_eq!(symbols.len(), 8);
+
+    let mut outcar = Outcar::try_from_path("tests/files/vasp/AlH3_Vasp5.dat".as_ref())?;
+    let symbols = outcar.parse_atom_types().unwrap();
+    assert_eq!(symbols.len(), 8);
+
+    Ok(())
+}
+// 5843bea2 ends here
+
+// [[file:../../adaptors.note::d5a293f0][d5a293f0]]
+//   free energy    TOTEN  =       -20.54559168 eV
+fn energy_toten(input: &mut &str) -> PResult<f64> {
+    use winnow::ascii::{line_ending, space0};
+
+    let energy = seq! {
+        _: "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM",
+        _: rest_line,
+        _: "  ---------------",
+        _: rest_line,
+        _: "  free  energy   TOTEN  =",
+        _: space0,
+           double,
+        _: space0,
+        _: "eV",
+        _: line_ending,
+        // ignore other two lines
+        _: read_line,
+        _: read_line
+    }
+    .context(label("energy TOTEN"))
+    .parse_next(input)?;
+    Ok(energy.0)
+}
+
+#[test]
+fn outcar_energy() -> PResult<()> {
+    let s = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM (eV)
+  ---------------------------------------------------
+  free  energy   TOTEN  =       -20.028155 eV
+
+  energy  without entropy=      -20.028155  energy(sigma->0) =      -20.028155
+";
+    let (_, v) = energy_toten.parse_peek(s)?;
+    assert_eq!(v, -20.028155);
+
+    Ok(())
+}
+// d5a293f0 ends here
+
 // [[file:../../adaptors.note::cfcdcec2][cfcdcec2]]
 pub(self) fn stress<'a>(input: &mut &'a str) -> PResult<[f64; 6]> {
     let x = seq! {
@@ -280,58 +333,6 @@ fn outcar_positons_and_forces() -> PResult<()> {
     Ok(())
 }
 // b5eb3fb1 ends here
-
-// [[file:../../adaptors.note::5843bea2][5843bea2]]
-impl Outcar {
-    pub(self) fn parse_atom_types(&mut self) -> Result<Vec<String>> {
-        use winnow::token::take_until;
-
-        let potcar_or_titel = |line: &str| line.contains("TITEL  =") || line.contains("POTCAR:");
-        self.reader.seek_line(potcar_or_titel)?;
-
-        let mut buf = String::new();
-        let ions_per_type = |line: &str| line.contains(" ions per type =");
-        self.reader.read_until(&mut buf, ions_per_type)?;
-        self.reader.read_line(&mut buf)?;
-
-        let (types, nums) = seq! {
-            atom_types,
-            _: jump_until("   ions per type ="),
-            num_ions_per_type
-        }
-        .parse(&buf)
-        .map_err(|e| parse_error(e, &buf))?;
-
-        let symbols: Vec<_> = types
-            .into_iter()
-            .zip(nums)
-            .flat_map(|(s, n)| std::iter::repeat(s.to_owned()).take(n))
-            .collect();
-        Ok(symbols)
-    }
-}
-
-#[test]
-fn outcar_atom_types_new() -> Result<()> {
-    let mut outcar = Outcar::try_from_path("./tests/files/vasp/OUTCAR-5.3.5".as_ref())?;
-    let symbols = outcar.parse_atom_types().unwrap();
-    assert_eq!(symbols.len(), 289);
-
-    let mut outcar = Outcar::try_from_path("tests/files/vasp/OUTCAR_diamond.dat".as_ref())?;
-    let symbols = outcar.parse_atom_types().unwrap();
-    assert_eq!(symbols.len(), 2);
-
-    let mut outcar = Outcar::try_from_path("tests/files/vasp/OUTCAR-5.2".as_ref())?;
-    let symbols = outcar.parse_atom_types().unwrap();
-    assert_eq!(symbols.len(), 8);
-
-    let mut outcar = Outcar::try_from_path("tests/files/vasp/AlH3_Vasp5.dat".as_ref())?;
-    let symbols = outcar.parse_atom_types().unwrap();
-    assert_eq!(symbols.len(), 8);
-
-    Ok(())
-}
-// 5843bea2 ends here
 
 // [[file:../../adaptors.note::cf96d53e][cf96d53e]]
 // For old VASP below 5.2.11
@@ -426,27 +427,134 @@ pub fn parse_from(f: &Path) -> Result<Vec<Frame>> {
 }
 // cf96d53e ends here
 
+// [[file:../../adaptors.note::639df118][639df118]]
+impl Outcar {
+    pub(self) fn collect_frame_text(&mut self, natoms: usize) -> Result<String> {
+        let energy_part_pattern = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM";
+        let forces_part_pattern = " POSITION                                       TOTAL-FORCE";
+        let energy_or_forces = |line: &str| line.contains(energy_part_pattern) || line.contains(forces_part_pattern);
+
+        let mut buf = String::new();
+        self.reader.read_until(&mut buf, energy_or_forces)?;
+        let n = self.reader.read_line(&mut buf)?;
+        let m = buf.len() - n;
+        let last_line = &buf[m..];
+        let old_vasp = last_line.contains(energy_part_pattern);
+        // For VASP older than 5.2.11, the energy part is before the forces part
+        if old_vasp {
+            // remove the energy part, and append after the forces part
+            let mut energy_part: String = buf.drain(m..).collect();
+            for _ in 0..3 {
+                self.reader.read_line(&mut energy_part)?;
+            }
+            // read to including the forces part
+            self.reader
+                .read_until(&mut buf, |line| line.contains(forces_part_pattern))?;
+            for _ in 0..natoms + 3 {
+                self.reader.read_line(&mut buf)?;
+            }
+            buf.push_str(&energy_part);
+        } else {
+            // read in the forces part
+            self.reader
+                .read_until(&mut buf, |line| line.contains(energy_part_pattern))?;
+            for _ in 0..3 {
+                self.reader.read_line(&mut buf)?;
+            }
+        }
+        Ok(buf)
+    }
+}
+// 639df118 ends here
+
+// [[file:../../adaptors.note::608566c9][608566c9]]
+fn parse_frame(frame_text: &mut &str) -> PResult<Frame> {
+    use winnow::combinator::opt;
+
+    let stress_part_pattern = "  FORCE on cell =-STRESS in cart.";
+    let has_stress_part = frame_text.contains(stress_part_pattern);
+    let lattice_part_pattern = " VOLUME and BASIS-vectors are now :";
+    let energy_part_pattern = "  FREE ENERGIE OF THE ION-ELECTRON SYSTEM";
+    let forces_part_pattern = " POSITION                                       TOTAL-FORCE";
+
+    let mut frame = Frame::default();
+    if has_stress_part {
+        jump_until(stress_part_pattern)
+            .context(label("stress part pattern"))
+            .parse_next(frame_text)?;
+        frame.stress = stress.parse_next(frame_text).ok();
+    }
+
+    // Parse lattice vectors
+    jump_until(lattice_part_pattern).parse_next(frame_text)?;
+    frame.lattice = lattice_vectors.parse_next(frame_text)?;
+
+    // Parse positions and forces
+    jump_until(forces_part_pattern).parse_next(frame_text)?;
+    let p_and_f = positions_and_forces.parse_next(frame_text)?;
+    frame.positions = p_and_f.iter().map(|x| x[..3].try_into().unwrap()).collect();
+    frame.forces = p_and_f.iter().map(|x| x[3..6].try_into().unwrap()).collect();
+
+    // Parse total energy
+    jump_until(energy_part_pattern).parse_next(frame_text)?;
+    frame.energy = energy_toten.parse_next(frame_text)?;
+
+    Ok(frame)
+}
+
+impl Outcar {
+    /// Parse all frames data including energy, positions, forces,
+    /// symbols, lattice, stress, ...
+    pub fn parse_frames(&mut self) -> Result<Vec<Frame>> {
+        let symbols = self.parse_atom_types()?;
+        let natoms = symbols.len();
+
+        let mut frames = Vec::new();
+        while let Ok(frame_text) = self.collect_frame_text(natoms) {
+            let mut frame = parse_frame
+                .parse(&frame_text)
+                .map_err(|e| parse_error(e, &frame_text))?;
+            frame.symbols = symbols.clone();
+            frames.push(frame);
+        }
+
+        Ok(frames)
+    }
+}
+// 608566c9 ends here
+
 // [[file:../../adaptors.note::600fda9b][600fda9b]]
 #[test]
-fn test_vasp() -> Result<()> {
+fn vasp_outcar() -> Result<()> {
     let f = "./tests/files/vasp/OUTCAR-5.3.5";
-    let frames = parse_from(f.as_ref()).unwrap();
+    let mut outcar = Outcar::try_from_path(f.as_ref())?;
+    let frames = outcar.parse_frames().unwrap();
     assert_eq!(frames.len(), 1);
 
     // test files from Jmol
     let f = "./tests/files/vasp/OUTCAR-5.2";
-    let frames = parse_from(f.as_ref()).unwrap();
+    let mut outcar = Outcar::try_from_path(f.as_ref())?;
+    let frames = outcar.parse_frames().unwrap();
     assert_eq!(frames.len(), 1);
 
     // test files from Jmol
     let f = "./tests/files/vasp/OUTCAR_diamond.dat";
-    let frames = parse_from(f.as_ref()).unwrap();
+    let mut outcar = Outcar::try_from_path(f.as_ref())?;
+    let frames = outcar.parse_frames().unwrap();
     assert_eq!(frames.len(), 1);
 
     // test files from Jmol
     let f = "tests/files/vasp/AlH3_Vasp5.dat";
-    let frames = parse_from(f.as_ref()).unwrap();
+    let mut outcar = Outcar::try_from_path(f.as_ref())?;
+    let frames = outcar.parse_frames().unwrap();
     assert_eq!(frames.len(), 7);
+
+    // let f = "/home/ybyygu/Documents/ni1/04zr2/OUTCAR";
+    // let mut outcar = Outcar::try_from_path(f.as_ref())?;
+    // let frames = outcar.parse_frames().unwrap();
+    // for f in frames {
+    //     dbg!(f.stress);
+    // }
 
     Ok(())
 }
