@@ -422,6 +422,8 @@ impl Outcar {
             let mut frame = parse_frame
                 .parse(&frame_text)
                 .map_err(|e| parse_error(e, &frame_text))?;
+            let pos = self.reader.get_current_position()?;
+            info!("Parsed one frame at position {pos}");
             frame.symbols = symbols.clone();
             frames.push(frame);
         }
