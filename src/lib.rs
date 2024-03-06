@@ -1,25 +1,22 @@
+// imports
+// #+name: 1650f65e
 
+use gosh_core::*;
 
+use gchemol::prelude::*;
+use gchemol::{Atom, Molecule};
 
-// * lib.rs
-// :PROPERTIES:
-// :header-args: :comments org :tangle src/lib.rs
-// :END:
-// ** mods
+// mods
 // #+name: 3022ca5d
 
 mod gaussian;
 mod gulp;
 mod mopac;
 mod null;
-mod parser;
-mod repl;
 mod siesta;
-mod skim;
-
 mod vasp;
+
 mod parquet;
-// mod parsers;
 
 //mod xtb;
 
@@ -28,19 +25,7 @@ mod common {
     pub use std::path::{Path, PathBuf};
 }
 
-
-
-// ** imports
-// #+name: 1650f65e
-
-use gosh_core::*;
-
-use gchemol::prelude::*;
-use gchemol::{Atom, Molecule};
-
-
-
-// ** pub/trait
+// pub/trait
 // #+name: 395f043c
 
 use gosh_core::gut::prelude::*;
@@ -65,9 +50,7 @@ pub trait ModelAdaptor {
     fn parse_all<P: AsRef<Path>>(&self, _outfile: P) -> Result<Vec<ModelProperties>>;
 }
 
-
-
-// ** exports
+// exports
 // #+name: 111a01d3
 
 pub use crate::gaussian::Gaussian;
@@ -77,14 +60,12 @@ pub use crate::null::Null;
 pub use crate::siesta::Siesta;
 pub use crate::vasp::Vasp;
 
-pub use crate::repl::repl_enter_main;
+// pub use crate::repl::repl_enter_main;
 
 /// Write parsed results in parquet format.
 pub use crate::parquet::ParquetWrite;
 
-
-
-// ** exports/docs
+// exports/docs
 // #+name: cfaadb2d
 
 #[cfg(feature = "adhoc")]

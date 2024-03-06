@@ -73,7 +73,7 @@ pub enum Cmd {
 // 724d9a95 ends here
 
 // [[file:../adaptors.note::a252f98f][a252f98f]]
-use crate::skim::Glance;
+// use crate::skim::Glance;
 
 #[derive(Debug, Default, Clone)]
 pub struct Action {
