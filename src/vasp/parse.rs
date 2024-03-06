@@ -4,7 +4,7 @@ use crate::common::*;
 use grep_reader::GrepReader;
 use std::path::Path;
 
-use crate::parsers::*;
+use gchemol_parser::parsers::*;
 // 25511eb1 ends here
 
 // [[file:../../adaptors.note::c35d320f][c35d320f]]
