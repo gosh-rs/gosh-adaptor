@@ -1,15 +1,14 @@
 // [[file:../../adaptors.note::43309458][43309458]]
-use gosh_core::text_parser::parsers::*;
+use gchemol_parser::parsers::*;
+// use gosh_core::text_parser::parsers::*;
 // 43309458 ends here
 
-// [[file:../../adaptors.note::*energy][energy:1]]
+// [[file:../../adaptors.note::f14d6ea0][f14d6ea0]]
 // Final energy =     -91.56438967 eV
 // Final Gnorm  =       0.00027018
-fn get_total_energy(s: &str) -> IResult<&str, f64> {
-    let mut token = "\n  Final energy =";
-    let mut jump = jump_to(token);
-    let mut tag_ev = tag("eV");
-    do_parse!(s, jump >> space0 >> e: double >> space0 >> tag_ev >> eol >> (e))
+fn get_total_energy(s: &mut &str) -> PResult<f64> {
+    let _ = jump_to("\n  Final energy =").parse_next(s)?;
+    terminated(ws(double), "eV").parse_next(s)
 }
 
 #[test]
@@ -33,58 +32,54 @@ fn test_energy() {
   Total lattice energy       =           -8834.5639 kJ/mol
 --------------------------------------------------------------------------------
 ";
-    let (_, en) = get_total_energy(line).unwrap();
+    let (_, en) = get_total_energy.parse_peek(line).unwrap();
     assert_eq!(-91.56438967, en);
 }
-// energy:1 ends here
+// f14d6ea0 ends here
 
-// [[file:../../adaptors.note::*structure][structure:1]]
-fn get_structure(s: &str) -> IResult<&str, Vec<(&str, [f64; 3])>> {
-    let mut token = "\n  Final cartesian coordinates of atoms :";
-    let mut jump = jump_to(token);
-    let mut read_atoms = many1(structure_line);
-    do_parse!(
-        s,
-        jump >> eol >>        // ignore head line
-        read_line   >>        // ignore blank line
-        read_line   >>        // ignore "----"
-        read_line   >>        // ignore "No."
-        read_line   >>        // ignore "Label"
-        read_line   >>        // ignore "---"
-        atoms: read_atoms  >> // element symbol and coordinates
-        (atoms)
-    )
+// [[file:../../adaptors.note::e7b05197][e7b05197]]
+fn get_structure<'a>(s: &mut &'a str) -> PResult<Vec<(&'a str, [f64; 3])>> {
+    let token = "\n  Final cartesian coordinates of atoms :";
+    let x = seq! {
+        _: jump_to(token), _: line_ending, // ignore head line
+        _: read_line,                      // ignore blank line
+        _: read_line,                      // ignore "----"
+        _: read_line,                      // ignore "No."
+        _: read_line,                      // ignore "Label"
+        _: read_line,                      // ignore "---"
+        repeat(1.., structure_line),       // element symbol and coordinates
+    }
+    .parse_next(s)?;
+    Ok(x.0)
 }
 
-fn structure_line(s: &str) -> IResult<&str, (&str, [f64; 3])> {
-    do_parse!(
-        s,
-        space0 >> digit1 >> space1 >>                   // ignore
-        symbol: alpha1 >> space1 >> alpha1 >> space1 >> // element symbol
-        coords: xyz_array >> space1 >> double >> eol >> // coordinates
-        ((symbol, coords))
-    )
+fn structure_line<'a>(s: &mut &'a str) -> PResult<(&'a str, [f64; 3])> {
+    seq! {
+        _: ws(digit1),          // ignore
+        ws(alpha1),             // element symbol,
+        _: alpha1, _: space1,   // ignore
+        ws(xyz_array),          // coordinates
+        _: rest_line,           // ignore
+    }
+    .parse_next(s)
 }
-// structure:1 ends here
+// e7b05197 ends here
 
-// [[file:../../adaptors.note::*forces][forces:1]]
-fn get_forces(s: &str) -> IResult<&str, Vec<[f64; 3]>> {
-    let mut token = "\n  Final Cartesian derivatives :";
-    let mut jump = jump_to(token);
-    let mut read_grads = many1(structure_line);
-    do_parse!(
-        s,
-        jump >> eol >>        // ignore head line
-        read_line   >>        // ignore blank line
-        read_line   >>        // ignore "----"
-        read_line   >>        // ignore "No."
-        read_line   >>        // ignore "Label"
-        read_line   >>        // ignore "---"
-        grads: read_grads  >> // element symbol and coordinates
-        ({
-            grads.into_iter().map(|(_, g)| g).collect()
-        })
-    )
+// [[file:../../adaptors.note::d07f0f0f][d07f0f0f]]
+fn get_forces(s: &mut &str) -> PResult<Vec<[f64; 3]>> {
+    let token = "\n  Final Cartesian derivatives :";
+    let grads: (Vec<_>,) = seq! {
+        _: jump_to(token), _: line_ending, // ignore head line
+        _: read_line,                      // ignore blank line
+        _: read_line,                      // ignore "----"
+        _: read_line,                      // ignore "No."
+        _: read_line,                      // ignore "Label"
+        _: read_line,                      // ignore "---"
+        repeat(1.., structure_line),       // element symbol and coordinates
+    }
+    .parse_next(s)?;
+
+    Ok(grads.0.into_iter().map(|(_, g)| g).collect())
 }
 
 #[test]
@@ -117,12 +112,12 @@ fn test_forces() {
   Maximum abs         0.003072      0.003763      0.003469      0.000000
 --------------------------------------------------------------------------------
   ";
-    let (_, forces) = get_forces(txt).unwrap();
+    let (_, forces) = get_forces.parse_peek(txt).unwrap();
     assert_eq!(16, forces.len());
 }
-// forces:1 ends here
+// d07f0f0f ends here
 
-// [[file:../../adaptors.note::*model][model:1]]
+// [[file:../../adaptors.note::4a4abe15][4a4abe15]]
 use gosh_core::gchemol::Molecule;
 use gosh_core::gut;
 use gosh_model::ModelProperties;
@@ -130,13 +125,15 @@ use gosh_model::ModelProperties;
 use gut::fs::*;
 use gut::prelude::*;
 
-fn get_gulp_results(s: &str) -> IResult<&str, ModelProperties> {
-    do_parse!(
-        s,
-        energy: get_total_energy >> // energy
-        atoms: get_structure >>     // symbols and coordinates
-        forces: get_forces >>       // forces
-        ({
+fn get_gulp_results(s: &mut &str) -> PResult<Vec<ModelProperties>> {
+    let parse_frame = (get_total_energy, get_structure, get_forces);
+    let frames: Vec<_> = repeat(1.., parse_frame).parse_next(s)?;
+    // consuming rest text for Parser.parse usage
+    let _ = rest.parse_next(s)?;
+
+    let mps = frames
+        .into_iter()
+        .map(|(energy, atoms, forces)| {
             let mut mp = ModelProperties::default();
             mp.set_energy(energy);
             mp.set_forces(forces);
@@ -145,13 +142,14 @@ fn get_gulp_results(s: &str) -> IResult<&str, ModelProperties> {
             mp.set_molecule(mol);
             mp
         })
-    )
+        .collect();
+    Ok(mps)
 }
 
 /// Get all results for multiple structures.
 pub(crate) fn get_gulp_results_all<P: AsRef<Path>>(fout: P) -> Result<Vec<ModelProperties>> {
     let s = read_file(fout)?;
-    let (_, mps) = many1(get_gulp_results)(&s).nom_trace_err()?;
+    let mps = get_gulp_results.parse(&s).map_err(|e| parse_error(e, &s))?;
     Ok(mps)
 }
 
@@ -161,4 +159,4 @@ fn test_get_gulp_results() {
     let mps = get_gulp_results_all(f).unwrap();
     assert_eq!(mps.len(), 6);
 }
-// model:1 ends here
+// 4a4abe15 ends here
