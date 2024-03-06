@@ -1,4 +1,4 @@
-// [[file:../../adaptors.note::*mod.rs][mod.rs:1]]
+// [[file:../../adaptors.note::5265cd7e][5265cd7e]]
 mod model;
 mod parse;
 
@@ -21,4 +21,4 @@ impl crate::ModelAdaptor for Mopac {
         Ok(last)
     }
 }
-// mod.rs:1 ends here
+// 5265cd7e ends here
