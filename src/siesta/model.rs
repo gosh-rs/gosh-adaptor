@@ -1,17 +1,16 @@
-// imports
+// [[file:../../adaptors.note::dadf5967][dadf5967]]
+use gchemol_parser::parsers::parse_error;
+use winnow::Parser;
 
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*imports][imports:1]]
 use gosh_core::gut;
 use gosh_model::ModelProperties;
 
 use gut::prelude::*;
 
 use std::path::Path;
-// imports:1 ends here
+// dadf5967 ends here
 
-// core
-
-// [[file:~/Workspace/Programming/gosh-rs/adaptors/adaptors.note::*core][core:1]]
+// [[file:../../adaptors.note::17ce3c72][17ce3c72]]
 /// Read SIESTA calculated results.
 ///
 /// # Parameters
@@ -23,22 +22,23 @@ pub(crate) fn get_siesta_results(siesta_out_file: &Path) -> Result<ModelProperti
     let siesta_struct_file = siesta_out_file.with_extension("STRUCT_OUT");
 
     let mut mp = ModelProperties::default();
+
     // get energy
     let s = gut::fs::read_file(&siesta_out_file)?;
-    let (_, e) = super::parse::get_total_energy_many(&s)
-        .map_err(|e| format_err!("parse siesta energy failed:\n{:?}", e))?;
+    let e = super::parse::get_total_energy_many
+        .parse(&s)
+        .map_err(|e| parse_error(e, &s))?;
     mp.set_energy(e.into_iter().last().unwrap());
 
     // get forces
     let s = gut::fs::read_file(&siesta_forces_file)?;
-    let (_, f) = super::parse::get_forces(&s)
-        .map_err(|e| format_err!("parse siesta forces failed:\n{:?}", e))?;
+    let f = super::parse::get_forces.parse(&s).map_err(|e| parse_error(e, &s))?;
     mp.set_forces(f);
 
     // get structures
     let s = gut::fs::read_file(&siesta_struct_file)?;
-    let (_, (cell, atoms)) = super::parse::get_structure(&s)
-        .map_err(|e| format_err!("parse siesta structure failed:\n{:?}", e))?;
+    let (cell, atoms) = super::parse::get_structure.parse(&s).map_err(|e| parse_error(e, &s))?;
+
     // scaled fractional coordinates => Cartesian coordinates
     mp.set_structure(atoms, Some(cell), true);
 
@@ -56,4 +56,4 @@ fn test_model_properties() -> Result<()> {
 
     Ok(())
 }
-// core:1 ends here
+// 17ce3c72 ends here

@@ -107,7 +107,7 @@ fn outcar_num_ions_per_type() {
 
 // [[file:../../adaptors.note::a5341d1a][a5341d1a]]
 pub(self) fn get_atom_types_from(f: &Path) -> Result<Vec<String>> {
-    use text_parser::TextReader;
+    use gchemol_parser::TextReader;
 
     let mut reader = TextReader::try_from_path(f)?;
     let match_collect =

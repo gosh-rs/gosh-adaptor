@@ -1,32 +1,18 @@
 // [[file:../../adaptors.note::7a05223b][7a05223b]]
-use nom::character::complete::digit1;
-use nom::character::complete::line_ending;
-use nom::character::complete::{space0, space1};
-use nom::number::complete::double;
-
-use text_parser::parsers::*;
+use gchemol_parser::parsers::*;
 // 7a05223b ends here
 
-// [[file:../../adaptors.note::*energy][energy:1]]
-use nom::bytes::complete::tag;
-use nom::bytes::complete::take_until;
-use nom::sequence::preceded;
-
-/// Read a line excluding line ending.
-fn read_line(s: &str) -> IResult<&str, &str> {
-    take_until("\n")(s)
-}
-
-fn get_total_energy(lines: &str) -> IResult<&str, f64> {
-    let token = "siesta:         Total =";
-    let (rest, _) = take_until(token)(lines)?;
-    let (rest, line) = preceded(tag(token), read_line)(rest)?;
-    let energy: f64 = line.trim().parse().unwrap();
-    Ok((rest, energy))
+// [[file:../../adaptors.note::87a2b87c][87a2b87c]]
+fn total_energy(input: &mut &str) -> PResult<f64> {
+    let mut skip = jump_to("siesta:         Total =");
+    let _ = skip.parse_next(input)?;
+    terminated(ws(double), rest)
+        .context(label("SIESTA total energy"))
+        .parse_next(input)
 }
 
 #[test]
-fn test_get_energy() {
+fn test_siesta_get_energy() {
     let line = "
 siesta: Final energy (eV):
 siesta:  Band Struct. =   -8565.028584
@@ -44,29 +30,33 @@ siesta:         Total =  -37729.793337
 siesta:         Fermi =      -2.515979
 siesta:         Total =  -37729.793337\n
 ";
-    let (_, en) = get_total_energy(line).unwrap();
+    let (_, en) = total_energy.parse_peek(line).unwrap();
     assert_eq!(-37729.793337, en);
 }
 
-pub fn get_total_energy_many(s: &str) -> IResult<&str, Vec<f64>> {
-    nom::multi::many1(get_total_energy)(s)
+pub fn get_total_energy_many(s: &mut &str) -> PResult<Vec<f64>> {
+    repeat(1.., total_energy).parse_next(s)
 }
-// energy:1 ends here
+// 87a2b87c ends here
 
 // [[file:../../adaptors.note::099f46fd][099f46fd]]
 // 1   0.664163041E-01   0.463152759E-01   0.711250774E-01
-fn read_forces_line(s: &str) -> IResult<&str, [f64; 3]> {
-    do_parse!(
-        s,
-        space0 >> digit1 >> space1 >> xyz: xyz_array >> line_ending >> (xyz)
-    )
+fn read_forces_line(s: &mut &str) -> PResult<[f64; 3]> {
+    let x = seq! {
+        _: ws(digit1),
+        xyz_array,
+        _: line_ending,
+    }
+    .parse_next(s)?;
+
+    Ok(x.0)
 }
 
-pub fn get_forces(s: &str) -> IResult<&str, Vec<[f64; 3]>> {
-    use nom::multi::count;
-
-    let (s, natoms) = read_usize(s)?;
-    count(read_forces_line, natoms)(s)
+pub fn get_forces(s: &mut &str) -> PResult<Vec<[f64; 3]>> {
+    let o = preceded(read_usize, repeat(1.., read_forces_line)).parse_next(s)?;
+    // consuming rest part
+    let _ = rest.parse_next(s)?;
+    Ok(o)
 }
 
 #[test]
@@ -105,42 +95,42 @@ fn test_get_forces() {
   31  -0.244065133E-01   0.289808532E-01   0.726568353E-02
   32   0.887815950E-02   0.142891047E-01  -0.153174884E-02
 ";
-    let (_, forces) = get_forces(line).unwrap();
+    let (_, forces) = get_forces.parse_peek(line).unwrap();
     assert_eq!(32, forces.len());
 }
 // 099f46fd ends here
 
 // [[file:../../adaptors.note::68246ec1][68246ec1]]
-fn get_cell(s: &str) -> IResult<&str, [[f64; 3]; 3]> {
-    do_parse!(
-        s,
-        space0 >> va: xyz_array >> line_ending >> // cell vector a
-        space0 >> vb: xyz_array >> line_ending >> // cell vector b
-        space0 >> vc: xyz_array >> line_ending >> // cell vector c
-        ([va, vb, vc])
-    )
+fn get_cell(s: &mut &str) -> PResult<[[f64; 3]; 3]> {
+    let x = seq! {
+        ws(xyz_array), _: line_ending, // cell vector a
+        ws(xyz_array), _: line_ending, // cell vector b
+        ws(xyz_array), _: line_ending, // cell vector c
+    }
+    .parse_next(s)?;
+    Ok([x.0, x.1, x.2])
 }
 
 // read element and coordinates
 // 4    45       0.993284236       0.996245743       0.237524061
-fn read_atom(s: &str) -> IResult<&str, (&str, [f64; 3])> {
-    do_parse!(
-        s,
-        space0  >> digit1 >> space1 >>      // atom type
-        n:      digit1    >> space1 >>      // atomic number
-        coords: xyz_array >> line_ending >> // xyz coordinates
-        ((n, coords))
-    )
+fn read_atom<'a>(s: &mut &'a str) -> PResult<(&'a str, [f64; 3])> {
+    seq! {
+        _: ws(digit1),       // atom type
+        ws(digit1),          // atomic number
+        ws(xyz_array),       // coordinates
+        _: line_ending,
+    }
+    .parse_next(s)
 }
 
 /// Return cell and atoms
-pub fn get_structure(s: &str) -> IResult<&str, ([[f64; 3]; 3], Vec<(&str, [f64; 3])>)> {
-    use nom::multi::count;
+pub fn get_structure<'a>(s: &mut &'a str) -> PResult<([[f64; 3]; 3], Vec<(&'a str, [f64; 3])>)> {
+    let cell = get_cell.parse_next(s)?;
+    let _natoms = read_usize.parse_next(s)?;
+    let atoms: Vec<_> = repeat(1.., read_atom).parse_next(s)?;
+    let _ = rest.parse_next(s)?;
 
-    let (r, cell) = get_cell(s)?;
-    let (r, natoms) = read_usize(r)?;
-    let (r, atoms) = count(read_atom, natoms)(r)?;
-    Ok((r, (cell, atoms)))
+    Ok((cell, atoms))
 }
 
 #[test]
@@ -183,7 +173,7 @@ fn test_get_structure() {
 4    45       0.778788669       0.889091725      -0.002546506
 ";
 
-    let (_, (cell, atoms)) = get_structure(s).unwrap();
+    let (_, (cell, atoms)) = get_structure.parse_peek(s).unwrap();
     assert_eq!(atoms.len(), 32);
 }
 // 68246ec1 ends here
