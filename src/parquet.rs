@@ -48,10 +48,15 @@ pub trait ParquetWrite {
 impl<T: super::ModelAdaptor> ParquetWrite for T {
     /// Dump parsed results in parquet format to file `pqfile`.
     fn dump(&self, outfile: impl AsRef<Path>, pqfile: impl AsRef<Path>) -> Result<()> {
+        let outfile = outfile.as_ref();
+        let pqfile = pqfile.as_ref();
+        println!("Parsing frames from {outfile:?}");
         let mps = self.parse_all(outfile)?;
         let parsed: Vec<_> = mps.into_iter().map(to_parsed).collect();
-        let mut writer = SimpleParquetFileWriter::new(pqfile.as_ref());
+        println!("Parsed {} frames.", parsed.len());
+        let mut writer = SimpleParquetFileWriter::new(pqfile);
         writer.write_row_group(&parsed)?;
+        println!("Wrote into parquet file: {:?}", pqfile);
         writer.close();
 
         Ok(())
