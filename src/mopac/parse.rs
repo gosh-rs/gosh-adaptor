@@ -88,6 +88,12 @@ fn test_strucuture_and_gradient() {
     assert_eq!("C", sym);
     assert_eq!(1.523300, position);
     assert_eq!(6.893093, gradient);
+
+    // A strange output
+    // it will not work
+    // let line = "      4          2 Si    CARTESIAN X    -2.431384-27235.808855  KCAL/ANGSTROM";
+    // let (_, (sym, position, gradient)) = structure_and_gradient_line.parse_peek(line).unwrap();
+    // dbg!(sym, position, gradient);
 }
 
 fn positions_and_forces<'a>(s: &mut &'a str) -> PResult<Vec<(&'a str, [f64; 3], [f64; 3])>> {
