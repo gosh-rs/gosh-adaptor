@@ -32,7 +32,8 @@ impl crate::ModelAdaptor for Gaussian {
     }
 
     fn parse_last<P: AsRef<Path>>(&self, outfile: P) -> Result<ModelProperties> {
-        self::gaussian_fchk::parse_gaussian_fchk(outfile)
+        let mut fchk = self::gaussian_fchk::GaussianFchk::try_from_path(outfile.as_ref())?;
+        fchk.parse_computed()
     }
 }
 // b33ce62d ends here
