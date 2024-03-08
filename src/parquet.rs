@@ -58,25 +58,3 @@ impl WriteParquet for [ModelProperties] {
     }
 }
 // da2377d0 ends here
-
-// [[file:../adaptors.note::c966bf00][c966bf00]]
-/// A trait for write parsed results from computed outfile in parquet
-/// format.
-pub trait ParquetWrite {
-    /// Dump parsed results in parquet format to file `pqfile`.
-    fn dump(&self, outfile: impl AsRef<Path>, pqfile: impl AsRef<Path>) -> Result<()>;
-}
-
-impl<T: super::ModelAdaptor> ParquetWrite for T {
-    /// Dump parsed results in parquet format to file `pqfile`.
-    fn dump(&self, outfile: impl AsRef<Path>, pqfile: impl AsRef<Path>) -> Result<()> {
-        let outfile = outfile.as_ref();
-        let pqfile = pqfile.as_ref();
-        println!("Parsing frames from {outfile:?}");
-        let mps = self.parse_all(outfile)?;
-        mps.write_parquet(pqfile)?;
-
-        Ok(())
-    }
-}
-// c966bf00 ends here

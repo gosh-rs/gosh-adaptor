@@ -11,7 +11,8 @@ macro_rules! process_app {
     ($app:expr, $args:expr) => {{
         let app = $app;
         if let Some(Task::Dump { pqfile }) = &$args.command {
-            app.dump(&$args.outfile, pqfile)?;
+            let mps = app.parse_all(&$args.outfile)?;
+            mps.write_parquet(pqfile)?;
         } else {
             parse(app, $args.all, &$args.outfile)?;
         }
