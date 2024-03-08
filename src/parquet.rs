@@ -37,6 +37,28 @@ fn to_parquet_vector(nested_array: impl IntoIterator<Item = impl Into<[f64; 3]>>
 }
 // 819fc289 ends here
 
+// [[file:../adaptors.note::da2377d0][da2377d0]]
+/// A trait for write `Computed` results in parquet format.
+pub trait WriteParquet {
+    /// Dump parsed results in parquet format to file `pqfile`.
+    fn write_parquet(&self, pqfile: impl AsRef<Path>) -> Result<()>;
+}
+
+impl WriteParquet for [ModelProperties] {
+    fn write_parquet(&self, pqfile: impl AsRef<Path>) -> Result<()> {
+        let pqfile = pqfile.as_ref();
+        let parsed: Vec<_> = self.iter().cloned().map(to_parsed).collect();
+        println!("Parsed {} complete frames in total.", parsed.len());
+        let mut writer = SimpleParquetFileWriter::new(pqfile);
+        writer.write_row_group(&parsed)?;
+        println!("Wrote into parquet file: {:?}", pqfile);
+        writer.close();
+
+        Ok(())
+    }
+}
+// da2377d0 ends here
+
 // [[file:../adaptors.note::c966bf00][c966bf00]]
 /// A trait for write parsed results from computed outfile in parquet
 /// format.
@@ -52,12 +74,7 @@ impl<T: super::ModelAdaptor> ParquetWrite for T {
         let pqfile = pqfile.as_ref();
         println!("Parsing frames from {outfile:?}");
         let mps = self.parse_all(outfile)?;
-        let parsed: Vec<_> = mps.into_iter().map(to_parsed).collect();
-        println!("Parsed {} complete frames in total.", parsed.len());
-        let mut writer = SimpleParquetFileWriter::new(pqfile);
-        writer.write_row_group(&parsed)?;
-        println!("Wrote into parquet file: {:?}", pqfile);
-        writer.close();
+        mps.write_parquet(pqfile)?;
 
         Ok(())
     }
