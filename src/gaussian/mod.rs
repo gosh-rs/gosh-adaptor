@@ -32,7 +32,23 @@ impl crate::ModelAdaptor for Gaussian {
     }
 
     fn parse_last<P: AsRef<Path>>(&self, outfile: P) -> Result<ModelProperties> {
-        let mut fchk = self::gaussian_fchk::GaussianFchk::try_from_path(outfile.as_ref())?;
+        use gchemol_parser::TextReader;
+
+        // FIXME: rewrite below
+        let f = outfile.as_ref();
+        let mut reader = TextReader::try_from_path(f)?;
+        if let Some(first_line) = reader.lines().next() {
+            if first_line.starts_with(" Entering Gaussian System") {
+                info!("Recognized as Gaussian output file.");
+                let all = self.parse_all(f)?;
+                if let Some(last) = all.into_iter().last() {
+                    return Ok(last);
+                } else {
+                    bail!("parsed no result!")
+                }
+            }
+        }
+        let mut fchk = self::gaussian_fchk::GaussianFchk::try_from_path(f)?;
         fchk.parse_computed()
     }
 }
