@@ -4,6 +4,7 @@ script = '''#! /usr/bin/env bash
 set -xe
 cargo im --offline --root=releases/${CARGO_MAKE_PROJECT_VERSION} --no-track --bins --force
 upx releases/${CARGO_MAKE_PROJECT_VERSION}/bin/*
+cp releases/${CARGO_MAKE_PROJECT_VERSION}/bin/* ~/.cargo/bin/
 '''
 
 [tasks.h]

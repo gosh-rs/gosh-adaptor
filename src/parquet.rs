@@ -53,7 +53,7 @@ impl<T: super::ModelAdaptor> ParquetWrite for T {
         println!("Parsing frames from {outfile:?}");
         let mps = self.parse_all(outfile)?;
         let parsed: Vec<_> = mps.into_iter().map(to_parsed).collect();
-        println!("Parsed {} frames.", parsed.len());
+        println!("Parsed {} complete frames in total.", parsed.len());
         let mut writer = SimpleParquetFileWriter::new(pqfile);
         writer.write_row_group(&parsed)?;
         println!("Wrote into parquet file: {:?}", pqfile);

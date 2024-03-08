@@ -5,11 +5,10 @@ use gchemol_parser::parsers::*;
 // fe37d073 ends here
 
 // [[file:../../adaptors.note::8578e6e9][8578e6e9]]
-struct GaussianOut {
-
-}
+struct GaussianOut {}
 
 /// Represents results for one frame parsed from Gaussian output.
+#[derive(Debug, Default, Clone)]
 pub struct Frame {
     pub atomic_numbers: Vec<usize>,
     pub energy: f64,
@@ -38,14 +37,18 @@ impl GaussianOutput {
 // 44f7d6ac ends here
 
 // [[file:../../adaptors.note::86278e23][86278e23]]
-fn read_positions(input: &mut &str) -> PResult<Vec<(usize, [f64; 3])>> {
+fn orientation_line(line: &mut &str) -> PResult<()> {
     use winnow::combinator::alt;
-    use winnow::combinator::not;
 
     let input_orientation = (ws("Input orientation:"), line_ending);
     let standard_orientation = (ws("Standard orientation:"), line_ending);
-    let orientation = alt((input_orientation, standard_orientation));
-    skip_line_till(orientation).parse_next(input)?;
+    alt((input_orientation, standard_orientation))
+        .parse_next(line)
+        .map(|_| ())
+}
+
+fn read_positions(input: &mut &str) -> PResult<Vec<(usize, [f64; 3])>> {
+    skip_line_till(orientation_line).parse_next(input)?;
 
     let x = seq! {
         _: " ---------", _: rest_line,
@@ -61,7 +64,6 @@ fn read_positions(input: &mut &str) -> PResult<Vec<(usize, [f64; 3])>> {
 
 //       3          1           0       -3.124042    0.673175   -0.828087
 fn position_line(input: &mut &str) -> PResult<(usize, [f64; 3])> {
-    assert!(!input.is_empty());
     let sym_and_pos = seq! {
         _: space1, _: digit1, _: space1, // ignore
         unsigned_integer,                // atomic number
@@ -100,16 +102,19 @@ fn test_gaussian_position() -> Result<()> {
 // [[file:../../adaptors.note::bb3681aa][bb3681aa]]
 //  SCF Done:  E(RB3LYP) =  -117.726685588     A.U. after   10 cycles
 fn read_energy(input: &mut &str) -> PResult<f64> {
+    use winnow::combinator::alt;
+
     let scf_done = " SCF Done:";
     let _ = skip_line_till(scf_done).parse_next(input)?;
 
     let x = seq! {
         _: space1,
-        _: not_space, _: " =",            // E(RB3LYP) =
-        ws(double),                       // energy
-        _: "A.U. after",
+        _: not_space, _: " =",                // E(RB3LYP) =
+        ws(double),                           // energy
+        _: alt(("A.U. after", "a.u. after")), // G03 sometimes using a.u. instead of A.U.
         _: rest_line,
     }
+    .context(label("energy"))
     .parse_next(input)?;
 
     Ok(x.0)
@@ -146,14 +151,14 @@ fn read_forces(input: &mut &str) -> PResult<Vec<[f64; 3]>> {
 
 //     4          6           0.006479521   -0.000810488    0.002127718
 fn forces_line(input: &mut &str) -> PResult<[f64; 3]> {
-    let ([x, y, z],) = seq! {
+    let (forces,) = seq! {
         _: space1, _: digit1, _: space1, // ignore
         _: unsigned_integer,             // atomic number
         ws(xyz_array),                   // coordinates
         _: line_ending,
     }
     .parse_next(input)?;
-    Ok([-x, -y, -z])
+    Ok(forces)
 }
 
 #[test]
@@ -183,7 +188,7 @@ fn test_forces() {
 // 46e080e9 ends here
 
 // [[file:../../adaptors.note::ad1147bb][ad1147bb]]
-fn read_frames(input: &mut &str) -> PResult<Vec<Frame>> {
+pub fn read_frame(input: &mut &str) -> PResult<Frame> {
     let to_frame = |(positions, energy, forces): (Vec<(usize, [f64; 3])>, _, _)| Frame {
         atomic_numbers: positions.iter().copied().map(|(num, pos)| num).collect(),
         positions: positions.iter().copied().map(|(num, pos)| pos).collect(),
@@ -191,26 +196,96 @@ fn read_frames(input: &mut &str) -> PResult<Vec<Frame>> {
         forces,
     };
 
-    let mut read_frame = (read_positions, read_energy, read_forces).map(to_frame);
-    let frames: Vec<_> = repeat(0.., read_frame).context(label("xx")).parse_next(input)?;
+    let frame = (read_positions, read_energy, read_forces)
+        .map(to_frame)
+        .parse_next(input)?;
+
     // ignore the rest for Parser.parse
     let _ = rest.parse_next(input)?;
 
-    Ok(frames)
-}
-
-pub fn parse_frames(f: &Path) -> Result<Vec<Frame>> {
-    let s = crate::gut::fs::read_file(f)?;
-    let frames = read_frames.parse(&s).map_err(|e| parse_error(e, &s))?;
-    Ok(frames)
+    Ok(frame)
 }
 // ad1147bb ends here
+
+// [[file:../../adaptors.note::87c2a83c][87c2a83c]]
+impl GaussianOutput {
+    // Input orientation or Standard orientation for positions?
+    fn get_orientation(&mut self) -> Result<&'static str> {
+        self.reader.goto_start();
+
+        let input_orientation = "Input orientation:";
+        let standard_orientation = "Standard orientation:";
+        let forces = "Center     Atomic                   Forces (Hartrees/Bohr)";
+        let matching = [standard_orientation, forces];
+        self.reader.seek_line(|line| matching.contains(&line.trim()))?;
+        let last_line = self.reader.peek_line()?;
+        // restore cursor
+        self.reader.goto_start();
+
+        let orient = if last_line.trim() == forces {
+            input_orientation
+        } else {
+            standard_orientation
+        };
+        Ok(orient)
+    }
+
+    /// Parse all frames for trajectory in Gaussian output file.
+    pub fn parse_frames(&mut self) -> Result<Vec<Frame>> {
+        let orientation = self.get_orientation()?;
+        // Skip the beginning part
+        self.reader.seek_line(|line| line.trim() == orientation)?;
+
+        let mut frames = Vec::new();
+        let mut buf = String::new();
+        let mut iframe = 0;
+        let mut collect_frame = || {
+            self.reader.read_line(&mut buf)?;
+            // catch the last part, without the pattern line
+            let r = self.reader.read_until(&mut buf, |line| line.trim() == orientation);
+            match read_frame.parse(&buf) {
+                Ok(frame) => {
+                    frames.push(frame);
+                    println!(
+                        "Parsed frame {iframe} at position {}",
+                        self.reader.get_current_position()?
+                    );
+                }
+                Err(e) => {
+                    warn!("Found parsing error for frame {iframe}: {}", e.to_string());
+                    info!("Input for this frame:");
+                    info!("{}", &buf);
+                }
+            }
+            iframe += 1;
+            buf.clear();
+            r?;
+            Ok_(())
+        };
+        // ignore parsing errors
+        while let Ok(_) = collect_frame() {}
+
+        Ok(frames)
+    }
+}
+// 87c2a83c ends here
 
 // [[file:../../adaptors.note::81d81ba0][81d81ba0]]
 #[test]
 fn test_gassian_out() -> Result<()> {
-    let f = "./tests/files/gaussian/H2O_G03_zopt.log";
-    let frames = parse_frames(f.as_ref())?;
+    let f = "tests/files/gaussian/Ala3-3-10-helix.log";
+    let mut gauss_out = GaussianOutput::try_from_path(f.as_ref())?;
+    let frames = gauss_out.parse_frames()?;
+    assert_eq!(frames.len(), 1);
+
+    let f = "tests/files/gaussian/g09.log";
+    let mut gauss_out = GaussianOutput::try_from_path(f.as_ref())?;
+    let frames = gauss_out.parse_frames()?;
+    assert_eq!(frames.len(), 1);
+
+    let f = "tests/files/gaussian/H2O_G03_zopt.log";
+    let mut gauss_out = GaussianOutput::try_from_path(f.as_ref())?;
+    let frames = gauss_out.parse_frames()?;
     assert_eq!(frames.len(), 14);
 
     Ok(())

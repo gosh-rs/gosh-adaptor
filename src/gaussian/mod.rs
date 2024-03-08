@@ -14,7 +14,8 @@ pub struct Gaussian();
 
 impl crate::ModelAdaptor for Gaussian {
     fn parse_all<P: AsRef<Path>>(&self, outfile: P) -> Result<Vec<ModelProperties>> {
-        let frames = self::gaussian_out::parse_frames(outfile.as_ref())?;
+        let mut gauss_out = self::gaussian_out::GaussianOutput::try_from_path(outfile.as_ref())?;
+        let frames = gauss_out.parse_frames()?;
         let mps = frames
             .into_iter()
             .map(|frame| {
