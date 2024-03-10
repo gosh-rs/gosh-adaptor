@@ -11,8 +11,10 @@ use gosh_adaptor::*;
 // [[file:../adaptors.note::047a05ac][047a05ac]]
 #[derive(Parser, Debug)]
 struct CollectParquet {
-    /// One or more computed files to be parsed.
-    outfiles: Vec<PathBuf>,
+    /// One or more computed files to be parsed. If not specified,
+    /// file names will be read from stdin, so use in combination with
+    /// `find` or `fd`.
+    outfiles: Option<Vec<PathBuf>>,
 
     #[arg(short = 'o')]
     /// The data file to be wrote parsed results (energy, forces,
@@ -38,10 +40,24 @@ struct ParseComputed {
 // 047a05ac ends here
 
 // [[file:../adaptors.note::232fa607][232fa607]]
+fn read_paths_from_stdin() -> Vec<PathBuf> {
+    info!("Read computed output files from stdin");
+    std::io::stdin()
+        .lines()
+        .filter_map(|line| line.map(|line| PathBuf::from(&line)).ok())
+        .collect()
+}
+
 impl CollectParquet {
     fn process(&self, app: impl ModelAdaptor) -> Result<()> {
         let mut all_mps = vec![];
-        for outfile in &self.outfiles {
+        let outfiles = self
+            .outfiles
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| read_paths_from_stdin());
+        info!("I will collect results from {} computed output files", outfiles.len());
+        for outfile in &outfiles {
             if self.last {
                 let mp = app.parse_last(outfile)?;
                 all_mps.push(mp);
