@@ -25,13 +25,15 @@ use std::fs::File;
 use std::io::BufReader;
 
 pub struct Outcar {
+    path: PathBuf,
     reader: TextReader<BufReader<File>>,
 }
 
 impl Outcar {
     pub fn try_from_path(f: &Path) -> Result<Self> {
         let reader = TextReader::try_from_path(f)?;
-        Ok(Self { reader })
+        let path = f.to_owned();
+        Ok(Self { reader, path })
     }
 }
 // 6f1bf8e7 ends here
@@ -423,7 +425,7 @@ impl Outcar {
                 .parse(&frame_text)
                 .map_err(|e| parse_error(e, &frame_text))?;
             let pos = self.reader.get_current_position()?;
-            info!("Parsed one frame at position {pos}");
+            info!("Parsed one frame at position {pos} for file {:?}", self.path);
             frame.symbols = symbols.clone();
             frames.push(frame);
         }
