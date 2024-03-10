@@ -8,130 +8,163 @@ use gut::prelude::*;
 use gosh_adaptor::*;
 // 5c844c95 ends here
 
-// [[file:../adaptors.note::*base][base:1]]
+// [[file:../adaptors.note::047a05ac][047a05ac]]
+#[derive(Parser, Debug)]
+struct CollectParquet {
+    /// One or more computed files to be parsed.
+    outfiles: Vec<PathBuf>,
+
+    #[arg(short = 'o')]
+    /// The data file to be wrote parsed results (energy, forces,
+    /// positions, ...), in parquet format.
+    pqfile: PathBuf,
+
+    /// Parse the last result entry found in the output. By default,
+    /// collect all valid results.
+    #[arg(short, long)]
+    last: bool,
+}
+
+#[derive(Parser, Debug)]
+struct ParseComputed {
+    /// The computed file to be parsed.
+    outfile: PathBuf,
+
+    /// Parse all result entries found in the output. By default, the
+    /// final result will be parsed.
+    #[arg(short, long)]
+    all: bool,
+}
+// 047a05ac ends here
+
+// [[file:../adaptors.note::232fa607][232fa607]]
+impl CollectParquet {
+    fn process(&self, app: impl ModelAdaptor) -> Result<()> {
+        let mut all_mps = vec![];
+        for outfile in &self.outfiles {
+            if self.last {
+                let mp = app.parse_last(outfile)?;
+                all_mps.push(mp);
+            } else {
+                let mps = app.parse_all(outfile)?;
+                all_mps.extend(mps);
+            }
+        }
+        all_mps.write_parquet(&self.pqfile)?;
+
+        Ok(())
+    }
+}
+
+impl ParseComputed {
+    fn process(&self, app: impl ModelAdaptor) -> Result<()> {
+        if self.all {
+            info!("Parsing all structure entries ...");
+            for d in app.parse_all(&self.outfile).context("parse all failure")? {
+                if d.is_empty() {
+                    bail!("No data extracted from: {:?}", self.outfile);
+                }
+                println!("{:}", d);
+            }
+        } else {
+            info!("Parsing the last structure entry ...");
+            let d = app.parse_last(&self.outfile).context("parse last failure")?;
+            if d.is_empty() {
+                bail!("No data extracted from: {:?}", self.outfile);
+            }
+            println!("{:}", d);
+        }
+
+        Ok(())
+    }
+}
+// 232fa607 ends here
+
+// [[file:../adaptors.note::3416c6c6][3416c6c6]]
+macro_rules! process_app {
+    ($chemical_model:expr, $task:expr) => {{
+        info!("Parsing computed file using model {:?}", $chemical_model);
+        match $chemical_model.as_str() {
+            "mopac" => {
+                let app = Mopac();
+                $task.process(app)?;
+            }
+            "siesta" => {
+                let app = Siesta();
+                $task.process(app)?;
+            }
+            "gulp" => {
+                let app = Gulp();
+                $task.process(app)?;
+            }
+            "vasp" => {
+                let app = Vasp();
+                $task.process(app)?;
+            }
+            "gaussian" => {
+                let app = Gaussian();
+                $task.process(app)?;
+            }
+            "null" => {
+                let app = Null();
+                $task.process(app)?;
+            }
+            _ => todo!(),
+        }
+    }};
+}
+// 3416c6c6 ends here
+
+// [[file:../adaptors.note::fe21c9aa][fe21c9aa]]
+/// Read calculated results, and format them as standard external model results.
+#[derive(Parser, Debug)]
+#[clap(author, version, about)]
+// #[clap(args_conflicts_with_subcommands = true)]
+struct Cli {
+    #[clap(flatten)]
+    verbose: Verbosity,
+
+    #[command(subcommand)]
+    task: Task,
+
+    /// The chemical model for the computed output file. Supported
+    /// models include vasp, gaussian, siesta, gulp
+    #[clap(required = true)]
+    chemical_model: String,
+}
+
 #[derive(Subcommand, Debug)]
 enum Task {
     /// Collect parsed results in `outfile` and write these data to
     /// `pqfile` in parquet format.
     ///
     /// # Example
-    /// * gosh-adaptor -m vasp collect OUTCAR -o calculated.pq
-    Collect {
-        /// The chemical model for the computed output file. Supported
-        /// models include vasp, gaussian, siesta, gulp
-        chemical_model: String,
+    ///
+    /// > gosh-adaptor vasp collect OUTCAR -o calculated.pq
+    Collect(CollectParquet),
 
-        /// One or more computed files to be parsed.
-        Outfiles: Vec<PathBuf>,
-
-        #[arg(short = 'o')]
-        /// The data file to be wrote parsed results (energy, forces,
-        /// positions, ...), in parquet format.
-        pqfile: PathBuf,
-    },
-
-    /// Parse computed results from output
-    Parse {
-        /// The chemical model for the computed output file. Supported
-        /// models include vasp, gaussian, siesta, gulp
-        chemical_model: String,
-
-        /// The computed file to be parsed.
-        outfile: PathBuf,
-
-        /// Parse all result entries found in the output
-        #[arg(short, long)]
-        all: bool,
-    },
-}
-// base:1 ends here
-
-// [[file:../adaptors.note::232fa607][232fa607]]
-fn collect_all_computed_to_parquet(app: impl ModelAdaptor, outfiles: &[PathBuf], pqfile: &Path) -> Result<()> {
-    let mut all_mps = vec![];
-    for outfile in outfiles {
-        let mps = app.parse_all(outfile)?;
-        all_mps.extend(mps);
-    }
-    all_mps.write_parquet(pqfile)?;
-
-    Ok(())
-}
-
-fn parse_computed_from(app: impl ModelAdaptor, all: bool, outfile: &Path) -> Result<()> {
-    if all {
-        info!("Parsing all structure entries ...");
-        for d in app.parse_all(outfile).context("parse all failure")? {
-            if d.is_empty() {
-                bail!("No data extracted from: {:?}", outfile);
-            }
-            println!("{:}", d);
-        }
-    } else {
-        info!("Parsing the last structure entry ...");
-        let d = app.parse_last(outfile).context("parse last failure")?;
-        if d.is_empty() {
-            bail!("No data extracted from: {:?}", outfile);
-        }
-        println!("{:}", d);
-    }
-
-    Ok(())
-}
-// 232fa607 ends here
-
-// [[file:../adaptors.note::*cli][cli:1]]
-macro_rules! process_app {
-    ($app:expr, $args:expr) => {{
-        let app = $app;
-        if let Some(Task::Dump { pqfile }) = &$args.command {
-            let mps = app.parse_all(&$args.outfile)?;
-            mps.write_parquet(pqfile)?;
-        } else {
-            parse(app, $args.all, &$args.outfile)?;
-        }
-    }};
-}
-
-/// Read calculated results, and format them as standard external model results.
-#[derive(Debug, Parser)]
-#[clap(author, version, about)]
-struct Cli {
-    #[clap(flatten)]
-    verbose: Verbosity,
-
-    #[command(subcommand)]
-    command: Task,
+    /// Print parse computed results in model properties format from output.
+    ///
+    /// # Example
+    ///
+    /// > gosh-adaptor vasp parse OUTCAR --all
+    Parse(ParseComputed),
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     cli.verbose.setup_logger();
 
+    let chemical_model = &cli.chemical_model;
     match cli.task {
-        Task::Collect {} => {
-            //
+        Task::Collect(task) => {
+            process_app!(chemical_model, &task)
         }
-        Task::Parse {} => {
-            //
+        Task::Parse(task) => {
+            process_app!(chemical_model, &task)
         }
-    }
-
-    let outfile = &cli.outfile;
-    info!(
-        "parse computed file {:?} using model {:?}",
-        outfile, &cli.chemical_model
-    );
-    match cli.chemical_model.as_str() {
-        "mopac" => process_app!(Mopac(), cli),
-        "siesta" => process_app!(Siesta(), cli),
-        "gulp" => process_app!(Gulp(), cli),
-        "vasp" => process_app!(Vasp(), cli),
-        "gaussian" => process_app!(Gaussian(), cli),
-        "null" => process_app!(Null(), cli),
-        _ => todo!(),
     }
 
     Ok(())
 }
-// cli:1 ends here
+// fe21c9aa ends here
