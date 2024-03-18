@@ -6,7 +6,11 @@ gosh-adaptor now supports write all collected data in parquet file
 
 for example, for VASP opt/MD task:
 
-    gosh-adaptor vasp OUTCAR dump opt.parq
+    gosh-adaptor vasp collect OUTCAR -o opt.parq
+
+read from bbm checkpoints db:
+
+    gosh-adaptor ckpts collect opt.db -o opt.parq
 
 opt.parq can be read and analyzed using polars or pandas.
 
