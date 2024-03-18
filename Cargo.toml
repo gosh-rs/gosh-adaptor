@@ -1,7 +1,7 @@
 # [[file:adaptors.note::b98eeb06][b98eeb06]]
 [package]
 name = "gosh-adaptor"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 authors = ["Wenping Guo <ybyygu@gmail.com>"]
 description = "Adaptor for chemical model"
@@ -16,6 +16,7 @@ dirs = "2"
 ###########
 gosh-core = { version="0.2.0" }
 gosh-model = { version="0.2.0" }
+gosh-database = { version = "0.2", features=["adhoc"] }
 gosh-repl = "0.1.3"
 gchemol-parser = { version = "0.5.0" }
 grep-reader = "0.1.3"

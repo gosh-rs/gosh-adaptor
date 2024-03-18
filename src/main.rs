@@ -125,6 +125,10 @@ macro_rules! process_app {
                 let app = Null();
                 $task.process(app)?;
             }
+            "ckpts" => {
+                let app = Ckpts();
+                $task.process(app)?;
+            }
             _ => todo!(),
         }
     }};
@@ -144,7 +148,7 @@ struct Cli {
     task: Task,
 
     /// The chemical model for the computed output file. Supported
-    /// models include vasp, gaussian, siesta, gulp
+    /// models include vasp, gaussian, siesta, gulp, ckpts (i.e, checkpointed db)
     #[clap(required = true)]
     chemical_model: String,
 }
